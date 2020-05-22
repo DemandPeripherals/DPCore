@@ -1,0 +1,457 @@
+//////////////////////////////////////////////////////
+//
+//  File: protomain.v;
+//  Description: This is the top module of the Peripheral
+//     control program, DPcore.
+// 
+/////////////////////////////////////////////////////
+
+// *********************************************************
+// Copyright (c) 2020 Demand Peripherals, Inc.
+// 
+// This file is licensed separately for private and commercial
+// use.  See LICENSE.txt which should have accompanied this file
+// for details.  If LICENSE.txt is not available please contact
+// support@demandperipherals.com to receive a copy.
+// 
+// In general, you may use, modify, redistribute this code, and
+// use any associated patent(s) as long as
+// 1) the above copyright is included in all redistributions,
+// 2) this notice is included in all source redistributions, and
+// 3) this code or resulting binary is not sold as part of a
+//    commercial product.  See LICENSE.txt for definitions.
+// 
+// DPI PROVIDES THE SOFTWARE "AS IS," WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+// WITHOUT LIMITATION ANY WARRANTIES OR CONDITIONS OF TITLE,
+// NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR
+// PURPOSE.  YOU ARE SOLELY RESPONSIBLE FOR DETERMINING THE
+// APPROPRIATENESS OF USING OR REDISTRIBUTING THE SOFTWARE (WHERE
+// ALLOWED), AND ASSUME ANY RISKS ASSOCIATED WITH YOUR EXERCISE OF
+// PERMISSIONS UNDER THIS AGREEMENT.
+// 
+// *********************************************************
+
+
+module DPcore(CK50, CK12, BNTN1, BNTN2, BNTN3, LED, RXF_, RD_, TXE_,
+      WR, USBD, GPIO0, GPIO1, GPIO2, GPIO3, JPA, JPB, JPC, JPD);
+    input CK50;            // 50 MHZ clock input
+    input CK12;            // 12.5 MHZ clock input
+    input BNTN1;           // Baseboard2 button #1
+    input BNTN2;           // Baseboard2 button #2
+    input BNTN3;           // Baseboard2 button #3
+    output [7:0] LED;      // Red LEDs on the Baseboard2
+    input RXF_;            // Data available if low
+    output RD_;            // Get data from bus when low
+    input TXE_;            // Able to send new data if low
+    output WR;             // Write data on positive edge
+    inout [7:0] USBD;      // USB data bus
+    inout GPIO0;           // GPIO pin
+    inout GPIO1;           // GPIO pin
+    inout GPIO2;           // GPIO pin
+    inout GPIO3;           // Dummy.  Not really used
+    inout [7:0] JPA;       // Connector SV1
+    inout [7:0] JPB;       // Connector SV2
+    inout [7:0] JPC;       // Connector SV3
+    inout [7:0] JPD;       // Connector SV4
+
+//////////////////////////////////////////////////////////////////////////
+//
+//  Instantiate the modules/hardware for this design
+
+    // Define the wires to/from the bus controller #0
+    wire bc0clk_in;        // 12.5 MHz input clock
+    wire bc0clk_out;       // the global system clock
+    wire bc0s1clk;         // utility 1.000 second clock pulse
+    wire bc0m100clk;       // utility 100.0 millisecond clock pulse
+    wire bc0m10clk;        // utility 10.00 millisecond clock pulse
+    wire bc0m1clk;         // utility 1.000 millisecond clock pulse
+    wire bc0u100clk;       // utility 100 microsecond clock pulse
+    wire bc0u10clk;        // utility 10 microsecond clock pulse
+    wire bc0u1clk;         // utility 1 microsecond clock pulse
+    wire bc0n100clk;       // utility 100 nanosecond clock pulse
+    wire bc0pollevt;       // Tick to mark the start of a poll cycle
+
+    // Define the wires to/from the FT245 interface
+    wire ft0clk;              // system clock
+    wire ft0phyrd_;           // active low read signal
+    wire ft0phyrxf_;          // receiver has data (not)
+    wire ft0phytxe_;          // transmitter buffer empty (not)
+    wire ft0phywr;            // active negative edge write signal
+    wire [7:0] ft0ifdatout;   // data toward the FPGA bus interface
+    wire ft0ifrxf_;           // New data for the bus interface (not)
+    wire ft0ifrd_;            // active positive edge read signal
+    wire [7:0] ft0ifdatin;    // data toward the USB interface
+    wire ft0iftxe_;           // transmitter empty (not)
+    wire ft0ifwr;             // active negative edge write signal
+    wire [15:0] ft0debug0;
+
+    // Define the wires to SLIP encoder #0
+    wire sl0clk;              // system clock
+    wire [7:0] sl0fthfdata;   // Data in from the FT245
+    wire sl0fthfrxf_;         // Receiver full (not) at fthf port
+    wire sl0fthfrd_;          // Read the new data, latch on rising edge
+    wire [7:0] sl0bihfdata;   // Data out to the bus interface
+    wire sl0bihfrxf_;         // Receiver full (not) at bihf port
+    wire sl0bihfrd_;          // Read the new data, latched on rising edge
+    wire sl0bihfpkt;          // ==1 if in a packet.  Rising edge == new pkt
+    wire [7:0] sl0ftfhdata;   // Data out to the FT245
+    wire sl0ftfhtxe_;         // Transmitter empty (not) at ftfh port
+    wire sl0ftfhwr;           // Write the new data, latch on clk rising edge
+    wire [7:0] sl0bifhdata;   // Data in from the bus interface
+    wire sl0bifhtxe_;         // Transmitter empty (not) at bifh port
+    wire sl0bifhwr;           // Take the new data, latched on clk rising edge
+    wire sl0bifhpkt;          // ==1 if in a packet.  Rising edge == new pkt
+
+    // Lines to and from the bus interface
+    wire bi0clk;              // 50MHz system clock
+    wire bi0clkms;            // 1 KHz clock
+    wire [7:0] bi0phydatin;   // Data from the physical interface
+    wire bi0phyrxf_;          // Data available if low
+    wire bi0phyrd_;           // Get data from bus when low
+    wire bi0pkt_in;           // High if we're receiving a packet
+    wire [7:0] bi0phydatout;  // Data toward the physical interface
+    wire bi0phytxe_;          // Able to send new data if low
+    wire bi0phywr;            // Write data on positive edge
+    wire bi0pkt_out;          // High when we want to send a packet
+    wire [11:0] bi0addr;      // address of target peripheral
+    wire [7:0] bi0datout;     // Data OUT to the peripherals
+    wire bi0rdwr;             // direction of this transfer. Read=1; Write=0
+    wire bi0strobe;           // true on full valid command
+    wire bi0busy;             // ==1 if target peripheral is busy
+    wire bi0u100clk;          // ==1 to mark start of a poll cycle
+    wire bi0addr_match;       // ==1 if target peripheral claims the address
+    wire [7:0] bi0datin;      // Data INto the bus interface;
+
+    // The enumerator of all other peripheral.  This is Peripheral Addr=0000
+    wire p00clk;              // system clock
+    wire p00rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p00strobe;           // true on full valid command
+    wire [3:0] p00our_addr;   // high byte of our assigned address
+    wire [11:0] p00addr;      // address of target peripheral
+    wire p00busy_in;          // ==1 if a previous peripheral is busy
+    wire p00busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p00addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p00addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p00datin;      // Data INto the peripheral;
+    wire [7:0] p00datout;     // Data OUTput from the peripheral, = datin if not us.
+ 
+    // Baseboard4 buttons and LEDs.  This is Peripheral Addr=0001 (usually!)
+    wire p01clk;              // system clock
+    wire p01rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p01strobe;           // true on full valid command
+    wire [3:0] p01our_addr;   // high byte of our assigned address
+    wire [11:0] p01addr;      // address of target peripheral
+    wire p01busy_in;          // ==1 if a previous peripheral is busy
+    wire p01busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p01addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p01addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p01datin;      // Data INto the peripheral;
+    wire [7:0] p01datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p02clk;              // system clock
+    wire p02rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p02strobe;           // true on full valid command
+    wire [3:0] p02our_addr;   // high byte of our assigned address
+    wire [11:0] p02addr;      // address of target peripheral
+    wire p02busy_in;          // ==1 if a previous peripheral is busy
+    wire p02busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p02addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p02addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p02datin;      // Data INto the peripheral;
+    wire [7:0] p02datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p03clk;              // system clock
+    wire p03rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p03strobe;           // true on full valid command
+    wire [3:0] p03our_addr;   // high byte of our assigned address
+    wire [11:0] p03addr;      // address of target peripheral
+    wire p03busy_in;          // ==1 if a previous peripheral is busy
+    wire p03busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p03addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p03addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p03datin;      // Data INto the peripheral;
+    wire [7:0] p03datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p04clk;              // system clock
+    wire p04rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p04strobe;           // true on full valid command
+    wire [3:0] p04our_addr;   // high byte of our assigned address
+    wire [11:0] p04addr;      // address of target peripheral
+    wire p04busy_in;          // ==1 if a previous peripheral is busy
+    wire p04busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p04addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p04addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p04datin;      // Data INto the peripheral;
+    wire [7:0] p04datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p05clk;              // system clock
+    wire p05rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p05strobe;           // true on full valid command
+    wire [3:0] p05our_addr;   // high byte of our assigned address
+    wire [11:0] p05addr;      // address of target peripheral
+    wire p05busy_in;          // ==1 if a previous peripheral is busy
+    wire p05busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p05addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p05addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p05datin;      // Data INto the peripheral;
+    wire [7:0] p05datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p06clk;              // system clock
+    wire p06rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p06strobe;           // true on full valid command
+    wire [3:0] p06our_addr;   // high byte of our assigned address
+    wire [11:0] p06addr;      // address of target peripheral
+    wire p06busy_in;          // ==1 if a previous peripheral is busy
+    wire p06busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p06addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p06addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p06datin;      // Data INto the peripheral;
+    wire [7:0] p06datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p07clk;              // system clock
+    wire p07rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p07strobe;           // true on full valid command
+    wire [3:0] p07our_addr;   // high byte of our assigned address
+    wire [11:0] p07addr;      // address of target peripheral
+    wire p07busy_in;          // ==1 if a previous peripheral is busy
+    wire p07busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p07addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p07addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p07datin;      // Data INto the peripheral;
+    wire [7:0] p07datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p08clk;              // system clock
+    wire p08rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p08strobe;           // true on full valid command
+    wire [3:0] p08our_addr;   // high byte of our assigned address
+    wire [11:0] p08addr;      // address of target peripheral
+    wire p08busy_in;          // ==1 if a previous peripheral is busy
+    wire p08busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p08addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p08addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p08datin;      // Data INto the peripheral;
+    wire [7:0] p08datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p09clk;              // system clock
+    wire p09rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p09strobe;           // true on full valid command
+    wire [3:0] p09our_addr;   // high byte of our assigned address
+    wire [11:0] p09addr;      // address of target peripheral
+    wire p09busy_in;          // ==1 if a previous peripheral is busy
+    wire p09busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p09addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p09addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p09datin;      // Data INto the peripheral;
+    wire [7:0] p09datout;     // Data OUTput from the peripheral, = datin if not us.
+
+    wire p10clk;              // system clock
+    wire p10rdwr;             // direction of this transfer. Read=1; Write=0
+    wire p10strobe;           // true on full valid command
+    wire [3:0] p10our_addr;   // high byte of our assigned address
+    wire [11:0] p10addr;      // address of target peripheral
+    wire p10busy_in;          // ==1 if a previous peripheral is busy
+    wire p10busy_out;         // ==our busy state if our address, pass through otherwise
+    wire p10addr_match_in;    // ==1 if a previous peripheral claims the address
+    wire p10addr_match_out;   // ==1 if we claim the above address, pass through otherwise
+    wire [7:0] p10datin;      // Data INto the peripheral;
+    wire [7:0] p10datout;     // Data OUTput from the peripheral, = datin if not us.
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//  Instantiate the modules/hardware for this design
+    bus_ctrl bc0(bc0clk_in, bc0clk_out, bc0pollevt, bc0s1clk, bc0m100clk,
+            bc0m10clk, bc0m1clk, bc0u100clk, bc0u10clk, bc0u1clk, bc0n100clk);
+
+    ft245 ft0(ft0clk, USBD, ft0phyrd_, ft0phyrxf_, ft0phytxe_, ft0phywr,
+            ft0ifdatout, ft0ifrxf_, ft0ifrd_, ft0ifdatin, ft0iftxe_,
+            ft0ifwr,ft0debug0);
+
+    slip sl0(sl0clk, sl0fthfdata, sl0fthfrxf_, sl0fthfrd_, sl0bihfdata, sl0bihfrxf_,
+            sl0bihfrd_, sl0bihfpkt, sl0ftfhdata, sl0ftfhtxe_, sl0ftfhwr, sl0bifhdata,
+            sl0bifhtxe_, sl0bifhwr, sl0bifhpkt);
+
+    busif bi0(bi0clk, bi0phydatin, bi0phyrxf_, bi0phyrd_, bi0pkt_in,
+            bi0phydatout, bi0phytxe_, bi0phywr, bi0pkt_out, bi0addr,
+            bi0datout, bi0rdwr, bi0strobe, bi0busy, bi0u100clk, bi0addr_match,
+            bi0datin);
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Bus controller
+    assign bc0clk_in = CK12;        
+
+    // USB interface
+    assign ft0clk = bc0clk_out;
+    assign ft0phyrxf_ = RXF_;
+    assign ft0phytxe_ = TXE_;
+    assign ft0ifrd_ = sl0fthfrd_;
+    assign ft0ifdatin = sl0ftfhdata;
+    assign ft0ifwr = sl0ftfhwr;
+    assign RD_ = ft0phyrd_; 
+    assign WR = ft0phywr;
+
+    // SLIP encoder/decoder sits between the USB and the bus interface
+    assign sl0clk = bc0clk_out;
+    assign sl0fthfdata = ft0ifdatout;
+    assign sl0fthfrxf_ = ft0ifrxf_;
+    assign sl0ftfhtxe_ = ft0iftxe_;
+    assign sl0bifhdata = bi0phydatout;
+    assign sl0bifhwr = bi0phywr;
+    assign sl0bifhpkt = bi0pkt_out;
+    assign sl0bihfrd_ = bi0phyrd_;
+
+    // Lines to and from bus interface #0
+    assign bi0clk = bc0clk_out;
+    assign bi0clkms = bc0m1clk;
+    assign bi0phydatin = sl0bihfdata;
+    assign bi0phyrxf_ = sl0bihfrxf_;
+    assign bi0pkt_in = sl0bihfpkt;
+    assign bi0phytxe_ = sl0bifhtxe_;
+    assign bi0busy = p00busy_out;
+    assign bi0u100clk = bc0u100clk;
+    assign bi0addr_match = p00addr_match_out;
+    assign bi0datin = p00datout;
+
+    // Lines to and from "The Enumerator", peripheral #0
+    assign p00clk = bc0clk_out;
+    assign p00rdwr = bi0rdwr;
+    assign p00strobe = bi0strobe;
+    assign p00our_addr = 4'h0;
+    assign p00addr = bi0addr;
+    assign p00busy_in = p01busy_out;
+    assign p00addr_match_in = p01addr_match_out;
+    assign p00datin = p01datout;     // Data INto the peripheral;
+
+    assign p01clk = bc0clk_out;
+    assign p01rdwr = bi0rdwr;
+    assign p01strobe = bi0strobe;
+    assign p01our_addr = 4'h1;
+    assign p01addr = bi0addr;
+    assign p01busy_in = p02busy_out;
+    assign p01addr_match_in = p02addr_match_out;
+    assign p01datin = p02datout;     // Data INto the peripheral;
+
+    assign p02clk = bc0clk_out;
+    assign p02rdwr = bi0rdwr;
+    assign p02strobe = bi0strobe;
+    assign p02our_addr = 4'h2;
+    assign p02addr = bi0addr;
+    assign p02busy_in = p03busy_out;
+    assign p02addr_match_in = p03addr_match_out;
+    assign p02datin = p03datout;
+
+    assign p03clk = bc0clk_out;
+    assign p03rdwr = bi0rdwr;
+    assign p03strobe = bi0strobe;
+    assign p03our_addr = 4'h3;
+    assign p03addr = bi0addr;
+    assign p03busy_in = p04busy_out;
+    assign p03addr_match_in = p04addr_match_out;
+    assign p03datin = p04datout;
+
+    assign p04clk = bc0clk_out;
+    assign p04rdwr = bi0rdwr;
+    assign p04strobe = bi0strobe;
+    assign p04our_addr = 4'h4;
+    assign p04addr = bi0addr;
+    assign p04busy_in = p05busy_out;
+    assign p04addr_match_in = p05addr_match_out;
+    assign p04datin = p05datout;
+
+    assign p05clk = bc0clk_out;
+    assign p05rdwr = bi0rdwr;
+    assign p05strobe = bi0strobe;
+    assign p05our_addr = 4'h5;
+    assign p05addr = bi0addr;
+    assign p05busy_in = p06busy_out;
+    assign p05addr_match_in = p06addr_match_out;
+    assign p05datin = p06datout;
+
+    assign p06clk = bc0clk_out;
+    assign p06rdwr = bi0rdwr;
+    assign p06strobe = bi0strobe;
+    assign p06our_addr = 4'h6;
+    assign p06addr = bi0addr;
+    assign p06busy_in = p07busy_out;
+    assign p06addr_match_in = p07addr_match_out;
+    assign p06datin = p07datout;
+
+    assign p07clk = bc0clk_out;
+    assign p07rdwr = bi0rdwr;
+    assign p07strobe = bi0strobe;
+    assign p07our_addr = 4'h7;
+    assign p07addr = bi0addr;
+    assign p07busy_in = p08busy_out;
+    assign p07addr_match_in = p08addr_match_out;
+    assign p07datin = p08datout;
+
+    assign p08clk = bc0clk_out;
+    assign p08rdwr = bi0rdwr;
+    assign p08strobe = bi0strobe;
+    assign p08our_addr = 4'h8;
+    assign p08addr = bi0addr;
+    assign p08busy_in = p09busy_out;
+    assign p08addr_match_in = p09addr_match_out;
+    assign p08datin = p09datout;
+
+    assign p09clk = bc0clk_out;
+    assign p09rdwr = bi0rdwr;
+    assign p09strobe = bi0strobe;
+    assign p09our_addr = 4'h9;
+    assign p09addr = bi0addr;
+    assign p09busy_in = p10busy_out;
+    assign p09addr_match_in = p10addr_match_out;
+    assign p09datin = p10datout;
+
+    assign p10clk = bc0clk_out;
+    assign p10rdwr = bi0rdwr;
+    assign p10strobe = bi0strobe;
+    assign p10our_addr = 4'ha;
+    assign p10addr = bi0addr;
+    assign p10busy_in = 0;
+    assign p10addr_match_in = 0;
+    assign p10datin = bi0datout;
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Define the IO pins to abstract away the exact location
+`define PIN_00  JPA[0]
+`define PIN_01  JPA[1]
+`define PIN_02  JPA[2]
+`define PIN_03  JPA[3]
+`define PIN_04  JPA[4]
+`define PIN_05  JPA[5]
+`define PIN_06  JPA[6]
+`define PIN_07  JPA[7]
+`define PIN_08  JPB[0]
+`define PIN_09  JPB[1]
+`define PIN_10  JPB[2]
+`define PIN_11  JPB[3]
+`define PIN_12  JPB[4]
+`define PIN_13  JPB[5]
+`define PIN_14  JPB[6]
+`define PIN_15  JPB[7]
+`define PIN_16  JPC[0]
+`define PIN_17  JPC[1]
+`define PIN_18  JPC[2]
+`define PIN_19  JPC[3]
+`define PIN_20  JPC[4]
+`define PIN_21  JPC[5]
+`define PIN_22  JPC[6]
+`define PIN_23  JPC[7]
+`define PIN_24  JPD[0]
+`define PIN_25  JPD[1]
+`define PIN_26  JPD[2]
+`define PIN_27  JPD[3]
+`define PIN_28  JPD[4]
+`define PIN_29  JPD[5]
+`define PIN_30  JPD[6]
+`define PIN_31  JPD[7]
+`define PIN_32  GPIO0
+`define PIN_33  GPIO1
+`define PIN_34  GPIO2
+`define PIN_35  GPIO3
+
