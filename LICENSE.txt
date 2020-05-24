@@ -1,0 +1,261 @@
+Preamble
+The intent of this License Agreement is to give as many rights as
+possible to those who use Demand Peripherals software and hardware
+designs for personal projects.  When used in non-commercial projects
+you are free to examine, to modify, to use, and to redistribute
+the software and hardware designs.
+
+As a programmer you may have become accustomed to not paying for
+software and software tools, but if you design and build hardware
+you are accustomed to paying for design tools, lab equipment, parts,
+circuit board fabrication, circuit board assembly, and card test
+and debug.  Since most of the expense is per circuit design, the
+greater the number of circuit boards you offer the greater your
+expenses.  
+
+Demand Peripherals uses a relatively low cost, easy to obtain
+commercial license as a way to offset the costs associated with
+design, building, and testing many different circuit cards, the
+designs of which are released under a Creative Commons license.
+
+
+License Agreement
+THIS LICENSE AGREEMENT GOVERNS YOUR ACQUISITION AND USE OF DEMAND
+PERIPHERALS, INC. ("DPI") SOFTWARE.  IF THE SOFTWARE IS FOR
+COMMERCIAL USE, YOU MUST PURCHASE A COMMERCIAL LICENSE (AVAILABLE
+VIA THE DPI WEB SITE STORE LINK), AT WHICH POINT THE TERMS IN
+ADDENDUM 1 SUPERSEDE THOSE IN THE AGREEMENT, WHERE APPLICABLE. 
+
+YOU ARE AGREEING TO THE TERMS OF THIS AGREEMENT IF YOU 1) DOWNLOAD
+THE SOFTWARE; OR 2) COMPILE, TRANSFORM, OR OTHERWISE USE THE
+SOFTWARE; OR 3) REDISTRIBUTE THE SOFTWARE; OR 4) CLICK ON A BOX
+INDICATING YOUR ACCEPTANCE OF IT; OR 5) EXECUTE AN ORDER FORM
+THAT REFERENCES THIS AGREEMENT.  IF YOU ARE ENTERING INTO THIS
+AGREEMENT ON BEHALF OF A COMPANY OR OTHER LEGAL ENTITY, YOU
+REPRESENT THAT YOU HAVE THE AUTHORITY TO BIND SUCH ENTITY AND
+ITS AFFILIATES TO THESE TERMS AND CONDITIONS, IN WHICH CASE THE
+TERMS "YOU" OR "YOUR" SHALL REFER TO SUCH ENTITY AND ITS AFFILIATES.
+IF YOU DO NOT HAVE SUCH AUTHORITY, OR IF YOU DO NOT AGREE WITH
+THESE TERMS AND CONDITIONS, YOU MUST NOT ACCEPT THIS AGREEMENT
+AND MAY NOT USE THE SOFTWARE. 
+
+
+1. DEFINITIONS.
+"Affiliate" means any entity that directly or indirectly controls,
+or is controlled by, or is under common control with the subject
+entity. "Control," for purposes of this definition, means direct
+or indirect ownership or control of more than 50% of the voting
+interests of the subject entity. 
+
+"Agreement" means this License Agreement. 
+
+"Documentation" means any usage guides or instructional material,
+as updated from time to time, available on the DPI web site or
+included with the Software. 
+
+"FPGA Binary Image" shall mean any compilation of FPGA Source made
+by DPI or You, that may be physically loaded onto an FPGA ("Field
+Programmable Gate Array").
+
+"FPGA Source" shall mean the software source code available from
+DPI and its related documentation, and modifications made to by
+You (or derived from) such source code, that may be used to compile
+an FPGA Binary Image.
+
+"Software" shall mean any FPGA Source or FPGA Binary Image made
+available under the License.
+
+"You" or "Your" means the person, company or other legal entity on
+whose behalf you are accepting this Agreement, and Affiliates of
+that company or entity.
+
+
+2.     PERMITTED LICENSE USES.
+2.1. Software License. Subject to the terms of this Agreement, DPI
+grants You a limited, revocable, non-exclusive, non-transferable,
+no-charge license to use, modify or copy the Software for personal
+use.
+2.2. Patent License. Subject to the terms of this Agreement, DPI
+hereby grants to You a limited, revocable, non-exclusive,
+non-transferable, no-charge license to use DPIÕs US patent(s) for
+personal use.  DPI makes commercially reasonable efforts to
+identify all designs, schematics, layouts, boards, and other
+published documentation, where its patent(s) apply.
+2.3. Exclusions. For clarity, this Agreement does not entitle You
+to use the Software or Patent Licenses as part of a commercial
+offering (e.g. where hardware, applications, devices, or any
+other medium sold by You require the use of the Software).  Such
+additional rights are subject to and conditional upon purchase of
+a commercial license. 
+
+
+3. REDISTRIBUTION OF SOFTWARE. You may reproduce and distribute
+copies of FPGA Source, provided that You meet the following
+conditions:
+1. You must give any other recipients of FPGA Source a copy of
+this License; and
+2. You must cause any modified FPGA Source files to carry prominent
+notices stating that You changed the files; and
+3. You must retain in the FPGA Source that you distribute all
+copyright, patent, trademark, and attribution notices from the DPI.
+
+
+4. WARRANTY AND INDEMNIFICATION. 
+4.1. Disclaimer of Warranty. DPI PROVIDES THE SOFTWARE "AS IS,"
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR
+IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTIES OR CONDITIONS
+OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A
+PARTICULAR PURPOSE.  YOU ARE SOLELY RESPONSIBLE FOR DETERMINING
+THE APPROPRIATENESS OF USING OR REDISTRIBUTING THE SOFTWARE (WHERE
+ALLOWED), AND ASSUME ANY RISKS ASSOCIATED WITH YOUR EXERCISE OF
+PERMISSIONS UNDER THIS AGREEMENT.
+
+
+5. LIMITATION OF LIABILITY. In no event, unless required by
+applicable law (such as deliberate and grossly negligent acts)
+shall DPI be liable to You for damages, including any direct,
+indirect, special, incidental, or consequential damages of any
+character arising as a result of this License or out of the use
+or inability to use the Software (including but not limited to
+damages for loss of goodwill, work stoppage, computer failure or
+malfunction, or any and all other commercial damages or losses),
+even if DPI has been advised of the possibility of such damages.
+
+
+6. FEES AND PAYMENT. No charge for personal use.
+
+
+7. TERM AND TERMINATION.
+7.1. Term. This Agreement is shall remain in effect until terminated
+pursuant to Section 7.2.
+7.2. Termination. Your rights will terminate automatically without
+notice from DPI if you fail to comply with any terms of the
+Agreement.  Upon termination of the Agreement, you shall cease all
+use of the Software and destroy all copies. Sections 4, 5, 8, 9.2,
+9.4 and 9.5 survive termination.  
+
+
+8. CHOICE OF LAW.
+8.1. Governing Law and Jurisdiction. This Agreement shall be
+construed and interpreted in accordance with the laws of the
+State of California and controlling United States federal law,
+excluding its conflicts of law provisions.
+
+
+9. GENERAL PROVISIONS. 
+9.1. Export Compliance. The Software DPI makes available may be
+subject to export laws and regulations of the United States and
+other jurisdictions.  Each party represents that it is not named
+on any U.S. government denied-party list.  You shall not permit
+users to use the Software in a U.S. embargoed country (currently
+Cuba, Iran, North Korea, Sudan, Syria or Crimea Ð Region of Ukraine)
+or in violation of any U.S. export law or regulation.
+9.2. Waiver. No failure or delay by either party in exercising any
+right under this Agreement will constitute a waiver of that right.
+9.3. No Assignment. Except in the case of a merger or sale of
+substantially all of Your assets, You shall not assign or transfer
+any of the rights, benefits and obligations under this Agreement. 
+9.4. Entire Agreement. The terms and conditions stated herein set
+forth the entire agreement of the parties and replace and supersede
+all other contracts, agreements, and understandings, written or oral,
+relating to the subject matter hereof.
+9.5. Severability. If any provision of this Agreement is held by a
+court of competent jurisdiction to be contrary to law, the provision
+will be deemed null and void, and the remaining provisions of this
+Agreement will remain in effect.
+
+Addendum 1
+The provisions of this Addendum 1 are applicable when You purchase
+a Commercial License from DPI.  For the purpose of this addendum,
+the following additional definitions or terms are either in addition
+to or, replace the relevant sections of the Agreement and shall be
+applicable as described:
+
+I. Section 1 "Definitions" shall be amended to add the following: 
+"Commercial License" means the purchase made by You that, among other
+things, updates license permissions that enable You to sell and
+distribute Your Product. 
+"Product" means a single product/model (including all software
+revisions to the product/model) that utilizes an embedded FPGA
+Binary Image.  
+
+Section 2 "Permitted License Uses" shall be replaced in its entirety
+as follows:
+2.1. Software License. 
+2.1.1. Subject to the terms of this Agreement, DPI grants You a
+limited, revocable, non-exclusive, non-transferable, no-charge
+license to use, modify or copy the Software for personal use.
+2.1.2. Subject to the terms of this Agreement, and payment for a
+corresponding Commercial License, DPI grants You a revocable,
+non-exclusive, non-transferable, license to use an embedded FPGA
+Binary Image in a Product that You make commercially available to
+end users. 
+2.2. Patent License. 
+2.2.1. Subject to the terms of this Agreement, DPI grants You a
+limited, non-exclusive, non-transferable, revocable, no-charge
+license to use DPIÕs US patent(s) for personal use. DPI makes
+commercially reasonable efforts to identify all designs,
+schematics, layouts, boards, and other published documentation,
+where its patent(s) apply.
+2.2.2. Subject to the terms of this Agreement, and payment for a
+corresponding Commercial License, DPI grants You a limited,
+non-exclusive, non-transferable license to use DPIÕs US patent(s),
+if applicable, in a Product that You make commercially available
+to end users. DPI makes commercially reasonable efforts to
+identify all designs, schematics, layouts, boards, and other
+published documentation, where its patent(s) apply.
+2.3. Exclusions. Deleted
+
+II. III. Section 4 "Warranty and Indemnification" shall be amended
+to add the following sections:
+4.2. Accepting Software Warranty or Additional Liability. You may
+choose to offer, and charge a fee for, acceptance of support,
+warranty, indemnity, or other liability obligations and/or rights
+consistent with this License.  However, in accepting such obligations,
+You may act only on Your own behalf and on Your sole responsibility,
+not on behalf of DPI, and only if You agree to indemnify, defend, and
+hold DPI harmless for any liability incurred by, or claims asserted
+against DPI by reason of your accepting any such warranty or
+additional liability.
+4.3. Indemnification. You agree to indemnify, hold harmless, and
+defend DPI and its owners, officers, agents, and affiliates from and
+against any and all claims, lawsuits and proceedings (collectively
+"Claims"), and all expenses, costs (including attorney's fees),
+judgments, damages and other liabilities resulting from such Claims,
+that arise or result from: (i) Your use of the Software in violation
+of this Agreement; (ii) the use or distribution of Your Product;
+(iii) Your modification and/or distribution of FPGA Source; or (iv)
+Your accepting support, warranty, indemnity, or other liability
+obligations as described in Section 4.2.
+Section 6 "Fees and Payment" shall be amended as follows:
+6. Fees and Payment. All fees are due in advance of Software delivery. 
+Except as otherwise specified herein or agreed to by DPI, fees are
+non-refundable. 
+
+III. Section 8 "Choice of Law" shall be amended to add the following
+section:
+8.2. Arbitration. Any dispute, claim or controversy arising out of or
+relating to this Agreement or the breach, termination, enforcement,
+interpretation or validity thereof, including the determination of
+the scope or applicability of this Agreement to arbitrate, shall be
+determined by arbitration in Portland, OR USA, before one arbitrator. 
+The arbitration shall be administered by JAMS pursuant to JAMS'
+Streamlined Arbitration Rules and Procedures.  Judgment on the Award
+may be entered in any court having jurisdiction.  This Section shall
+not preclude parties from seeking provisional remedies in aid of
+arbitration from a court of appropriate jurisdiction.
+
+IV. Section 9 "General Provisions" shall be amended to add the
+following section:
+9.6. Government Use. If the Software or any related documentation is
+licensed to the U.S. Government or any agency thereof, it will be
+considered to be "commercial computer software" or "commercial
+computer software documentation," as those terms are used in 48 CFR
+12.212 or 48 CFR 227.7202, and is being licensed with only those
+rights as are granted to all other licensees as set forth in this
+Agreement.
+Except for the modifications specified above, this Addendum 1
+carries no other changes to the terms of the Agreement, which shall
+remain in full force.
+
+
