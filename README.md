@@ -49,13 +49,14 @@ loadable shared object libraries (plug-ins). While intended to
 support the FPGA-based peripherals in a Demand Peripherals FPGA
 image, you may find that dpdaemon has several features you'll
 find useful for your next Linux-to-hardware project:
-    Command line tools to view and set plug-in parameters
-    Simple publish/subscribe mechanism for sensor data
-    All commands and data are printable ASCII over TCP
-    Modular plug-ins (drivers) for easy development
-    No dependencies (excluding libc)
-    Event-driven and C means low CPU/memory footprint
-    GPLv2 License.
+  - Simple publish/subscribe mechanism for sensor data
+  - All commands and data are printable ASCII over TCP
+  - Only three commands in protocol: dpset, dpget, and dpcat
+  - Shell equivalents for all protocol commands
+  - Modular plug-ins (drivers) for easy development
+  - No dependencies (excluding libc)
+  - Event-driven and C gives a low CPU/memory footprint
+  - GPLv2 License.
 
 **DPCore** is the FPGA part of the peripherals.  DPCore has the
 timing and logic needed to drive the electronics on the daughter
