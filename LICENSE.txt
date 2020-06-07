@@ -93,7 +93,9 @@ a commercial license.
 copies of FPGA Source, provided that You meet the following
 conditions:
 1. You must give any other recipients of FPGA Source a copy of
-this License; and
+this License and cause files containing FPGA Source to carry
+prominent notices that they are subject to this license; and
+
 2. You must cause any modified FPGA Source files to carry prominent
 notices stating that You changed the files; and
 3. You must retain in the FPGA Source that you distribute all
@@ -111,15 +113,14 @@ ALLOWED), AND ASSUME ANY RISKS ASSOCIATED WITH YOUR EXERCISE OF
 PERMISSIONS UNDER THIS AGREEMENT.
 
 
-5. LIMITATION OF LIABILITY. In no event, unless required by
-applicable law (such as deliberate and grossly negligent acts)
-shall DPI be liable to You for damages, including any direct,
-indirect, special, incidental, or consequential damages of any
-character arising as a result of this License or out of the use
-or inability to use the Software (including but not limited to
-damages for loss of goodwill, work stoppage, computer failure or
-malfunction, or any and all other commercial damages or losses),
-even if DPI has been advised of the possibility of such damages.
+5. LIMITATION OF LIABILITY. In no event shall DPI be liable to You
+for damages, including any direct, indirect, special, incidental,
+or consequential damages of any character arising as a result of
+this License or out of the use or inability to use the Software
+(including but not limited to damages for loss of goodwill, work
+stoppage, computer failure or malfunction, or any and all other
+commercial damages or losses), even if DPI has been advised of
+the possibility of such damages.
 
 
 6. FEES AND PAYMENT. No charge for personal use.
@@ -213,9 +214,9 @@ choose to offer, and charge a fee for, acceptance of support,
 warranty, indemnity, or other liability obligations and/or rights
 consistent with this License.  However, in accepting such obligations,
 You may act only on Your own behalf and on Your sole responsibility,
-not on behalf of DPI, and only if You agree to indemnify, defend, and
-hold DPI harmless for any liability incurred by, or claims asserted
-against DPI by reason of your accepting any such warranty or
+not on behalf of DPI. You agree to indemnify, defend, and hold DPI
+harmless for any liability incurred by, or claims asserted against
+DPI by reason of your accepting any such warranty or
 additional liability.
 4.3. Indemnification. You agree to indemnify, hold harmless, and
 defend DPI and its owners, officers, agents, and affiliates from and
@@ -228,8 +229,9 @@ of this Agreement; (ii) the use or distribution of Your Product;
 Your accepting support, warranty, indemnity, or other liability
 obligations as described in Section 4.2.
 Section 6 "Fees and Payment" shall be amended as follows:
-6. Fees and Payment. All fees are due in advance of Software delivery. 
-Except as otherwise specified herein or agreed to by DPI, fees are
+6. Fees and Payment. All commercial fees are payable via the DPI
+web store and are due in advance of Software delivery. Except as
+otherwise specified herein or agreed to by DPI, fees are
 non-refundable. 
 
 III. Section 8 "Choice of Law" shall be amended to add the following
