@@ -27,7 +27,7 @@
 // See LICENSE.txt for more information.
 // *********************************************************
 
-//////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
 //
 //  File: tif.v;   Text display interface card
 //
@@ -70,18 +70,18 @@
 //  
 // GST  Pin 6/4/2       State
 // #0       0/0/0     Start state
-// #1       0/0/1     Set up data value for the RCK/LD- strobes
-// #2       1/0/1     Rising edge sets RCK high and LD- low
-// #3       0/0/1     Lower clock line that controls RCK/LD flip-flop
-// #4       0/0/0     Data is latched.  Now start shifting the bits
-// #5       1/0/0     Rising egde of pin4 sets RCK low and LD- high
+// #1       0/0/0     Set up data value for the RCK/LD- strobes
+// #2       1/0/0     Rising edge sets RCK high and LD- low
+// #3       0/0/0     Lower clock line that controls RCK/LD flip-flop
+// #4       0/0/1     Data is latched.  Now start shifting the bits
+// #5       1/0/1     Rising egde of pin4 sets RCK low and LD- high
 //                    (repeat 6-10 for each bit)
 // #6       1/0/d     Setup the data out value for this bit
 //                    (do edge detection for input value during #6)
 // #7       1/0/d     Save input value into RAM
 // #8       1/1/d     Shift clock goes high, shifting in 'd'.
 // #9       1/0/0     Lower clock line to flip-flop controlling shift clocks
-// #10      0/0/0     QB (SCK, CLK) goes low
+// #10      0/0/1     QB (SCK, CLK) goes low
 //                    (repeat 6-10 for each bit)
 //
 /////////////////////////////////////////////////////////////////////////
@@ -235,7 +235,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         if ((m10clk == 1) || (u1clk == 1))
         begin
 
-            // Run state machine for shifting data to/from the 595/597s
+            // Run state machine for shifting data to/from the 595/165
             // if there are LCD chars to send or if in a keypad scan
             if ((depth != 0) || (doscan == 1) || (duration != 0))
             begin
@@ -243,30 +243,31 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 begin
                     gst <= gst + 1;
 
-                    if ((gst == 6) & (bst[3] == 0))
+                    if ((gst == 6) & (bst[3] == 0))  // valid 165 data, first byte of bst
                     begin
                         // At this point 'sample' has the input value of
-                        // 74597-input == 'bst' (0 to 7).  Do input processing here
+                        // 74165-input == 'bst' (7 to 0).  Do input processing here
 
                         // KEYPAD
-                        // Keypad scan bit if bst 3-7.  Check for a press
+                        // Keypad scan bit if bst 4-0.  Check for a press
                         // by looking for a sample value of zero.  And/Or
                         // look for a released key by watching for a sample
                         // of one at the previous pressed scancode.  Note
-                        // columns are the output lines and rows are the input.
+                        // colunms are the output lines and rows are the input.
                         // Ignore the first two scanline values since we are
                         // sort of priming the pump to get the real values.
-                        if ((bst[2:0] >= 3) && (doscan == 1) && (scanline >= 2))
+                        // Sample is zero on a key press.
+                        if ((bst[2:0] <= 4) && (doscan == 1) && (scanline >= 2))
                         begin
                             // if no key pressed and now sample = 0, then new key
                             // keypress on column==scanline and row==bst.
                             // Scancode == 0 if no key pressed
                             if ((scancode == 5'h00) && (sample == 0))
                             begin
-                                scancode <= { (scanline - 2), bst[2:0] } ;
+                                scancode <= { (scanline - 2), ~(bst[2:0]) } ;
                                 dataready <= 1;                // send to host
                             end
-                            else if ((scancode == { (scanline - 2), bst[2:0] }) && (sample == 1))
+                            else if ((scancode == { (scanline - 2), ~(bst[2:0]) }) && (sample == 1))
                             begin  // on row/col of previous close but now it's open
                                 scancode <= 5'h00;
                                 dataready <= 1;                // send to host
@@ -274,17 +275,17 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         end
 
                         // ROTARY ENCODER
-                        // If bit_state (bst) is <= 3 then the sample line
+                        // If bit_state (bst) is >= 5 then the sample line
                         // has the state of the rotary encoder A/B or button
                         // Do button press/release detection and quadrature
                         // decoding here.
                         // The quadrature decoder needs both A and B inputs so
                         // just capture A
-                        if (bst[2:0] == 1)
+                        if (bst[2:0] == 5)
                         begin
                             newA <= sample;
                         end
-                        else if (bst[2:0] == 2)
+                        else if (bst[2:0] == 6)
                         begin
                             // Sample is newB and we have newA, oldB, and oldA so we can
                             // do the quadrature decoding.
@@ -305,7 +306,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                                 dataready <= 1;
                             end
                         end
-                        else if ((bst[2:0] == 0) && (dataready == 0) && (button != sample))
+                        else if ((bst[2:0] == 7) && (dataready == 0) && (button != sample))
                         begin
                             // There is a new state for the rotary encoder button.
                             button <= sample;
@@ -370,10 +371,10 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 
     // Select the keypad column to scan (active low)
     assign scancol = 
-        (scanline[1:0] == 0) ? 4'b1110 :
-        (scanline[1:0] == 1) ? 4'b1101 :
-        (scanline[1:0] == 2) ? 4'b1011 :
-        (scanline[1:0] == 3) ? 4'b0111 :
+        (scanline[1:0] == 1) ? 4'b1110 :
+        (scanline[1:0] == 0) ? 4'b1101 :
+        (scanline[1:0] == 3) ? 4'b1011 :
+        (scanline[1:0] == 2) ? 4'b0111 :
                                4'b1111 ;
 
     // Map the output of the various sub-peripherals to
@@ -404,7 +405,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign faddr = depth -1;
 
     // Assign the outputs.
-    assign pin2 = ((gst == 1) || (gst == 2) || (gst == 3) ||
+    assign pin2 = ((gst == 4) || (gst == 5) || (gst == 10) ||     // set RCK on 74165
                    (((gst == 6) || (gst == 7) || (gst == 8)) && sendbit));
     assign pin4 = (gst == 8);
     assign pin6 = ((gst == 2) || (gst == 5) || (gst == 6) || (gst == 7)
