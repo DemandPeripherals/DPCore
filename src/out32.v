@@ -121,8 +121,8 @@ module out32(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     wire   [3:0] raddr;      // RAM address lines
     wire   [1:0] rin;        // RAM input lines
     wire   wen;              // RAM write enable
-    out32_16x1(rout[1],raddr,rin[1],clk,wen);   // MS word
-    out32_16x1(rout[0],raddr,rin[0],clk,wen);   // LS word
+    out32_16x1 out32_ms(rout[1],raddr,rin[1],clk,wen);   // MS word
+    out32_16x1 out32_ls(rout[0],raddr,rin[0],clk,wen);   // LS word
 
 
     initial
@@ -147,23 +147,23 @@ module out32(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         begin
             if (gst < 2)
             begin
-                gst <= gst + 1;
+                gst <= gst + 3'h1;
             end
             else if (gst == 2)
             begin
                 // select the next bits to be shifted
-                gst <= gst + 1;                
-                bst <= bst + 1;
+                gst <= gst + 3'h1;                
+                bst <= bst + 4'h1;
             end
             else if (gst == 3)
             begin
                 // shifting 16 bits (states 0-3) then go to latch states
-                gst <= (bst == 15) ? 4 : 0;
+                gst <= (bst == 15) ? 3'h4 : 3'h0;
             end
             else if (gst < 7)
             begin
                 // data latch
-                gst <= gst + 1;
+                gst <= gst + 3'h1;
             end
             else
             begin

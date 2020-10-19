@@ -110,7 +110,7 @@ module rcrx(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     reg    ind1, ind2;       // Input delay lines
     reg    [14:0] main;      // Main pulse width measurement clock
     reg    [2:0] nchan;      // Channel count as set by the user.  Default is 6.
-    reg    [4:0] count;      // Edge count.  At least 2x nchan
+    reg    [3:0] count;      // Edge count.  At least 2x nchan
     reg    led;              // The latched state of the LED. 
     reg    state;            // wait for first edge, in pulses
     reg    data_ready;       // ==1 if a packet is ready for the host
@@ -173,11 +173,11 @@ module rcrx(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (ind2 == ind1)
             begin
                 if (main != 15'h7fff)
-                    main <= main + 1;
+                    main <= main + 15'h0001;
             end
             else if (main < 15'h0800)
             begin
-                main <= main +1;
+                main <= main + 15'h0001;
             end
 
             // Otherwise do edge / state machine processing
@@ -201,7 +201,7 @@ module rcrx(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     state <= 0;
                 end
                 else begin
-                    count <= count + 1;
+                    count <= count + 4'h01;
                     if (count[3:1] == nchan)  // done with this packet??
                     begin
                         data_ready <= 1;
@@ -222,7 +222,7 @@ module rcrx(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (strobe && (addr[5:0] == 32)) ? {ioval,iodir,led,nchan} :
                     (strobe & (addr[0] ==0)) ? douth : 
                     (strobe & (addr[0] ==1)) ? doutl : 
-                    0 ; 
+                    8'h00 ; 
 
     assign ramwen  = ((ind1 != ind2) && (state == 1) && (main != 15'h7fff));
     assign raddr = (strobe & myaddr) ? addr[4:1] : count ;

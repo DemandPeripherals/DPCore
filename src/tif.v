@@ -213,7 +213,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             // FIFO shift clock is strobed now if not full (on MSB == 0)
             if ((depth != 15) && (datin[7] == 1))
             begin
-                depth <= depth + 1;
+                depth <= depth + 4'h1;
                 doscan <= 0;
             end
         end
@@ -229,7 +229,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 datatohost <= 1;
             // decrement the tone duration if playing a tone
             if (duration != 0)
-                duration <= duration -1;
+                duration <= duration - 5'h01;
         end
 
         if ((m10clk == 1) || (u1clk == 1))
@@ -241,7 +241,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             begin
                 if (gst <= 9)
                 begin
-                    gst <= gst + 1;
+                    gst <= gst + 4'h1;
 
                     if ((gst == 6) & (bst[3] == 0))  // valid 165 data, first byte of bst
                     begin
@@ -264,10 +264,10 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                             // Scancode == 0 if no key pressed
                             if ((scancode == 5'h00) && (sample == 0))
                             begin
-                                scancode <= { (scanline - 2), ~(bst[2:0]) } ;
+                                scancode <= { (scanline[1:0] - 2'h2), ~(bst[2:0]) } ;
                                 dataready <= 1;                // send to host
                             end
-                            else if ((scancode == { (scanline - 2), ~(bst[2:0]) }) && (sample == 1))
+                            else if ((scancode == { (scanline[1:0] - 2'h2), ~(bst[2:0]) }) && (sample == 1))
                             begin  // on row/col of previous close but now it's open
                                 scancode <= 5'h00;
                                 dataready <= 1;                // send to host
@@ -292,7 +292,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                             if (((oldA != newA) && (oldA ^ oldB)) ||
                                 ((oldB != sample) && (~(oldA ^ oldB))))
                             begin
-                                quad <= quad + 1;
+                                quad <= quad + 4'h1;
                                 oldA <= newA;
                                 oldB <= sample;
                                 dataready <= 1;
@@ -300,7 +300,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                             else if (((oldA != newA) && (~(oldA ^ oldB))) ||
                                 ((oldB != sample) && (oldA ^ oldB)))
                             begin
-                                quad <= quad - 1;
+                                quad <= quad - 4'h1;
                                 oldA <= newA;
                                 oldB <= sample;
                                 dataready <= 1;
@@ -316,8 +316,8 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 end
                 else
                 begin
-                    bst <= bst + 1;  // next bit
-                    gst <= (bst == 15) ? 0 : 6;
+                    bst <= bst + 4'h1;  // next bit
+                    gst <= (bst == 15) ? 4'h0 : 4'h6;
                     if (bst == 15) 
                     begin
                         // At this point we're done sending the last bit
@@ -331,7 +331,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         begin
                             // 6 states since it takes two states to set
                             // the output and then read the input.
-                            scanline <= scanline +1;
+                            scanline <= scanline + 3'h1;
                             if (scanline == 5)        // done with this scan?
                                 doscan <= 0;
                         end
@@ -346,17 +346,17 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         // tied to FIFO depth)
                         if (depth != 0)
                         begin
-                            xferst <= xferst +1;
+                            xferst <= xferst + 2'h1;
                             if (xferst == 3)
                             begin
-                                depth <= depth -1;
+                                depth <= depth - 4'h1;
                             end
                         end
 
                         // TONE GENERATION
                         if (duration != 0)
                         begin
-                            freqdiv <= freqdiv -1;
+                            freqdiv <= freqdiv - 4'h1;
                             if (freqdiv == 0)
                             begin
                                 piezo <= ~piezo;
@@ -385,13 +385,13 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         (bst ==  2) ? ((depth == 0) ? scancol[0] : dout[3] ) :  // keypad column 0
         (bst ==  3) ? ((depth == 0) ? scancol[3] : dout[1] ) :  // keypad column 3
         (bst ==  4) ? ((depth == 0) ? scancol[2] : dout[0] ) :  // keypad column 2
-        (bst ==  5) ? ((xferst == 3'h2) ? 0 : 1) : // E on the display
+        (bst ==  5) ? ((xferst == 3'h2) ? 1'b0 : 1'b1) : // E on the display
         (bst ==  6) ? dout[8] :         // RS on the display
         (bst ==  7) ? contrast :
         (bst ==  8) ? ~ledctrl[2] :     // User LED2
         (bst ==  9) ? ~ledctrl[1] :     // User LED1
-        (bst == 10) ? ((duration != 0) ? piezo : 0) :           // piezo output
-        (bst == 11) ? (((duration != 0) && (volumn == 1)) ? ~piezo : 0) :// high volume
+        (bst == 10) ? ((duration != 0) ? piezo : 1'b0) :           // piezo output
+        (bst == 11) ? (((duration != 0) && (volumn == 1)) ? ~piezo : 1'b0) :// high volume
         (bst == 12) ? ~ledctrl[0] :     // LED backlight on the display
         (bst == 13) ? dout[6] :         // Data 6 (pin 13) on the display
         (bst == 14) ? dout[7] :         // Data 7 (pin 14) on the display
@@ -402,7 +402,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign fsclk = (~clk & strobe & myaddr & ~rdwr & (addr[2:0] == 4)
                    & (datin[7] == 1) & (depth != 15));
     // Zero indexed addresses.  Look at output of cell addr=0 when the depth is 1.
-    assign faddr = depth -1;
+    assign faddr = depth - 4'h1;
 
     // Assign the outputs.
     assign pin2 = ((gst == 4) || (gst == 5) || (gst == 10) ||     // set RCK on 74165
@@ -418,7 +418,7 @@ module tif(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (strobe && (addr[2:0] == 1)) ?  {  2'h0, quad } :
                     (strobe && (addr[2:0] == 2)) ?  { volumn, tone, duration } :
                     (strobe && (addr[2:0] == 3)) ?  { 5'b0000, ledctrl } :
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

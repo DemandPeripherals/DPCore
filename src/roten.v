@@ -118,12 +118,12 @@ module roten(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 // increment or decrement the count if needed
                 if (q_inc)
                 begin
-                    count <= count +1;
+                    count <= count + 7'h01;
                     data_avail <= 1;
                 end
                 else if (q_dec)
                 begin
-                    count <= count -1;
+                    count <= count - 7'h01;
                     data_avail <= 1;
                 end
 
@@ -154,7 +154,7 @@ module roten(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (~strobe && data_avail) ? 8'h01 :  // Just one byte to send up
                     (strobe && (addr[0] == 0)) ? {~btnst,count} : // button is active low
                     (strobe && (addr[0] == 1)) ? {7'h00,ledst} :
-                    0 ;
+                    8'h00 ;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

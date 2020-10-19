@@ -91,12 +91,12 @@ module pgen16(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     // Addressing and bus interface lines 
     wire   myaddr;           // ==1 if a correct read/write on our address
     wire   [7:0] doutl;      // RAM output lines
-    wire   [4:0] douth;      // RAM output lines
+    wire   [3:0] douth;      // RAM output lines
     wire   [3:0] raddr;      // RAM address lines
     wire   timewenl;         // Timer RAM write enable low
     wire   timewenh;         // Timer RAM write enable high
     ram16x8out4 lowtime(doutl,raddr,datin,clk,timewenl);
-    ram16x4out4 hitimbits(douth,raddr,datin,clk,timewenh);
+    ram16x4out4 hitimbits(douth,raddr,datin[3:0],clk,timewenh);
 
 
     // Pattern generation timer and state
@@ -109,14 +109,14 @@ module pgen16(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 
 
     // Generate the clock source for the main counter
-    assign lclk = (freq[3:1] == 0) ? 0 :
+    assign lclk = (freq[3:1] == 0) ? 1'b0 :
                   (freq[3:1] == 1) ? n100clk :
                   (freq[3:1] == 2) ? u1clk :
                   (freq[3:1] == 3) ? u10clk :
                   (freq[3:1] == 4) ? u100clk :
                   (freq[3:1] == 5) ? m1clk :
                   (freq[3:1] == 6) ? m10clk :
-                  (freq[3:1] == 7) ? m100clk : 0;
+                  (freq[3:1] == 7) ? m100clk : 1'b0;
 
 
     initial
@@ -145,10 +145,10 @@ module pgen16(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                  ((freq[0] == 0) && (lclk == 1)) ||
                  ((freq[0] == 1) && (lreg == 1) && (lclk == 1)))
             begin
-                main <= main + 1;
+                main <= main + 8'h01;
                 if (main == 8'hff)
                 begin
-                    state <= state + 1;
+                    state <= state + 4'h1;
                 end
                 if (main == doutl)
                 begin
@@ -170,12 +170,12 @@ module pgen16(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign timewenh  = (mywrite && (addr[5] == 0) && (addr[0] == 1));
     assign raddr = (strobe & myaddr) ? addr[4:1] : state ;
 
-    assign myaddr = (addr[15:8] == our_addr) && (addr[7:6] == 0);
+    assign myaddr = (addr[11:8] == our_addr) && (addr[7:6] == 0);
     assign datout = (~myaddr) ? datin :
                     (strobe && (addr[5] == 1)) ? {4'h0,freq} :
                     (strobe && (addr[0] == 0)) ? doutl : 
                     (strobe && (addr[0] == 1)) ? {4'h0,douth} : 
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

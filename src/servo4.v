@@ -22,8 +22,6 @@
 // ALLOWED), AND ASSUME ANY RISKS ASSOCIATED WITH YOUR EXERCISE OF
 // PERMISSIONS UNDER THIS AGREEMENT.
 // 
-// This software may be covered by US patent #10,324,889. Rights
-// to use these patents is included in the license agreements.
 // See LICENSE.txt for more information.
 // *********************************************************
 
@@ -89,7 +87,7 @@ module servo4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 val <= 0;
                 servoclk <= 0;
                 // 8 servos at 2.5 ms each is 20 ms
-                servoid <= servoid + 1;
+                servoid <= servoid + 3'h1;
             end
             else
             begin
@@ -97,28 +95,28 @@ module servo4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 if ((doutl == servoclk[7:0]) && (douth == servoclk[15:8]))
                     val <= 1;
 
-                servoclk <= servoclk + 1;   // increment PWM clock
+                servoclk <= servoclk + 16'h0001;   // increment PWM clock
             end
         end
     end
 
 
     // Assign the outputs.
-    assign servo[3] = (servoid != 3) ? 0 : val ;
-    assign servo[2] = (servoid != 2) ? 0 : val ;
-    assign servo[1] = (servoid != 1) ? 0 : val ;
-    assign servo[0] = (servoid != 0) ? 0 : val ;
+    assign servo[3] = (servoid != 3) ? 1'b0 : val ;
+    assign servo[2] = (servoid != 2) ? 1'b0 : val ;
+    assign servo[1] = (servoid != 1) ? 1'b0 : val ;
+    assign servo[0] = (servoid != 0) ? 1'b0 : val ;
 
     assign wclk  = clk;
     assign wenh  = (strobe & myaddr & ~rdwr & (addr[0] == 0)); // latch data on a write
     assign wenl  = (strobe & myaddr & ~rdwr & (addr[0] == 1)); // latch data on a write
-    assign raddr = (strobe & myaddr) ? {2'h0,addr[2:1]} : {2'h0,servoid} ;
+    assign raddr = (strobe & myaddr) ? {2'h0,addr[2:1]} : {1'h0,servoid} ;
 
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:3] == 0);
     assign datout = (~myaddr) ? datin :
                     (strobe & (addr[0] == 0)) ? douth :
                     (strobe & (addr[0] == 1)) ? doutl :
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

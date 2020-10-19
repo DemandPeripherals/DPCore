@@ -46,9 +46,10 @@
 //
 //
 /////////////////////////////////////////////////////////////////////////
-`define IDLE         2'h0
-`define GETSMPL      2'h1
-`define SNDRPLY      2'h2
+
+`define ADCIDLE         2'h0
+`define ADCGETSMPL      2'h1
+`define ADCSNDRPLY      2'h2
 
 
 module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
@@ -92,7 +93,7 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         smplrate = 249;      // Send samples up every 250 milliseconds
         ratediv = 0;
         differ = 0;
-        state = `IDLE;
+        state = `ADCIDLE;
     end
 
 
@@ -118,7 +119,7 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         end
         else if (strobe & myaddr & (state == `SNDRPLY))  // back to idle after the reply pkt read
         begin
-            state <= `IDLE;
+            state <= `ADCIDLE;
         end
 
         // Increment sample timer and switch state if time to sample
@@ -127,30 +128,30 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (ratediv == smplrate)
             begin
                 ratediv <= 0;
-                state <= `GETSMPL;
+                state <= `ADCGETSMPL;
                 smplinx <= 0;     // First ADC input
                 bitinx  <= 0;     // First bit of first ADC input
                 espiinx <= 0;     // First espi state is to output the chip select
             end
             else
-                ratediv <= ratediv + 1;
+                ratediv <= ratediv + 8'h01;
         end
 
         // Do state machine to shift in/out the SPI data if getting smpl and on 10 MHz clk
-        else if (n100clk  & (state == `GETSMPL))
+        else if (n100clk  & (state == `ADCGETSMPL))
         begin
             if (espiinx != 5)  // Done with espi bit?
-                espiinx <= espiinx + 1;
+                espiinx <= espiinx + 3'h1;
             else
             begin
                 espiinx <= 0;
                 if (bitinx != 20)  // Done getting sample?
-                    bitinx <= bitinx + 1;
+                    bitinx <= bitinx + 5'h01;
                 else
                 begin
                     bitinx <= 0;
                     if (smplinx != 7)  // Done getting all 8 samples?
-                        smplinx <= smplinx + 1;
+                        smplinx <= smplinx + 3'h1;
                     else
                     begin
                         state <= `SNDRPLY;
@@ -173,34 +174,35 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     //     miso =  x   x   x    x   x   x   x   0   d12 d11 d10 d9  d8  d7  d6  d5  d4  d3  d2  d1  d0  x
 
     // Assign the outputs.
-    assign a = (state == `GETSMPL) & (espiinx == 4);
-    assign b = ~(espiinx == 1) & (state == `GETSMPL);
+    assign a = (state == `ADCGETSMPL) & (espiinx == 4);
+    assign b = ~(espiinx == 1) & (state == `ADCGETSMPL);
     assign mosi = (espiinx < 3) ? (bitinx == 0) :
-                  (bitinx == 1) ? 1 :
+                  (bitinx == 1) ? 1'b1 :
                   (bitinx == 2) ? ~differ[smplinx] :
                   (bitinx == 3) ? smplinx[2] :
                   (bitinx == 4) ? smplinx[1] :
-                  (bitinx == 5) ? smplinx[0] : 0;
+                  (bitinx == 5) ? smplinx[0] :
+                  1'b0;
 
 
     // Assign the RAM control lines
     assign wclk  = clk;
-    assign wen   = (state == `GETSMPL) & (bitinx > 6) & (espiinx == 4); // latch while sck high
-    assign din[0] = ((state == `GETSMPL) && ((bitinx == 20) || (bitinx == 12))) ? meta : dout[0];
-    assign din[1] = ((state == `GETSMPL) && ((bitinx == 19) || (bitinx == 11))) ? meta : dout[1];
-    assign din[2] = ((state == `GETSMPL) && ((bitinx == 18) || (bitinx == 10))) ? meta : dout[2];
-    assign din[3] = ((state == `GETSMPL) && ((bitinx == 17) || (bitinx == 09))) ? meta : dout[3];
-    assign din[4] = ((state == `GETSMPL) && ((bitinx == 16) || (bitinx == 08))) ? meta : dout[4];
-    assign din[5] = ((state == `GETSMPL) && ((bitinx == 15) || (bitinx == 07))) ? meta : dout[5];
-    assign din[6] = ((state == `GETSMPL) && ((bitinx == 14) || (bitinx == 06))) ? meta : dout[6];
-    assign din[7] = ((state == `GETSMPL) && ((bitinx == 13) || (bitinx == 05))) ? meta : dout[7];
-    assign raddr = (state == `GETSMPL) ? {smplinx[2:0],(bitinx > 12)} : addr[3:0];
+    assign wen   = (state == `ADCGETSMPL) & (bitinx > 6) & (espiinx == 4); // latch while sck high
+    assign din[0] = ((state == `ADCGETSMPL) && ((bitinx == 20) || (bitinx == 12))) ? meta : dout[0];
+    assign din[1] = ((state == `ADCGETSMPL) && ((bitinx == 19) || (bitinx == 11))) ? meta : dout[1];
+    assign din[2] = ((state == `ADCGETSMPL) && ((bitinx == 18) || (bitinx == 10))) ? meta : dout[2];
+    assign din[3] = ((state == `ADCGETSMPL) && ((bitinx == 17) || (bitinx == 09))) ? meta : dout[3];
+    assign din[4] = ((state == `ADCGETSMPL) && ((bitinx == 16) || (bitinx == 08))) ? meta : dout[4];
+    assign din[5] = ((state == `ADCGETSMPL) && ((bitinx == 15) || (bitinx == 07))) ? meta : dout[5];
+    assign din[6] = ((state == `ADCGETSMPL) && ((bitinx == 14) || (bitinx == 06))) ? meta : dout[6];
+    assign din[7] = ((state == `ADCGETSMPL) && ((bitinx == 13) || (bitinx == 05))) ? meta : dout[7];
+    assign raddr = (state == `ADCGETSMPL) ? {smplinx[2:0],(bitinx > 12)} : addr[3:0];
 
     // Assign the bus control lines
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:5] == 0);
     assign datout = (~myaddr) ? datin :
                     (~strobe & (state == `SNDRPLY)) ? 8'h10 :  // all replies have 16 bytes
-                    (strobe) ? dout : 0 ; 
+                    (strobe) ? dout : 8'h00 ; 
     assign busy_out = busy_in;
     assign addr_match_out = myaddr | addr_match_in;
 

@@ -249,8 +249,6 @@ module clk12to20(CLKIN_IN, CLKFX_OUT);
     output CLKFX_OUT;
  
     wire CLKFX_BUF;
-    wire GND_BIT;
-    assign GND_BIT = 1'b0;
     assign CLKFX_OUT = CLKFX_BUF;
 
    DCM_SP #(

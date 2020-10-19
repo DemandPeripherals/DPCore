@@ -223,7 +223,7 @@ module ei2c(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if ((clkrate && (clkdiv == 12)) || (~clkrate && (clkdiv == 48)))
                 clkdiv <= 0;
             else
-                clkdiv <= clkdiv + 1;
+                clkdiv <= clkdiv + 6'h01;
         end
 
         // reading the register for the last i2c bit clears the dataready flag
@@ -252,11 +252,11 @@ module ei2c(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         else if (~(strobe & myaddr & ~rdwr) & bqclk & inxfer)
         begin
             // Increment quarter bit state
-            bq <= bq + 1;
+            bq <= bq + 2'h1;
 
             if (bq == 3)
             begin
-                bix <= bix + 1;
+                bix <= bix + 7'h01;
 
                 // A stop bit marks the end of a packet
                 if (rout[1:0] == 2'b11)
@@ -330,7 +330,7 @@ module ei2c(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign datout = (~myaddr) ? datin :
                     (~strobe && myaddr && (dataready)) ? {1'h0, (bix)} :
                     (strobe) ? {6'h00,rout} : 
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

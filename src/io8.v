@@ -135,9 +135,9 @@ module io8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     wire   [3:0] raddr;      // RAM address lines
     wire   [2:0] rin;        // RAM input lines
     wire   wen;              // RAM write enable
-    io8_16x1(rout[2],raddr,rin[2],clk,wen);
-    io8_16x1(rout[1],raddr,rin[1],clk,wen);
-    io8_16x1(rout[0],raddr,rin[0],clk,wen);
+    io8_16x1   io8_in_bit(rout[2],raddr,rin[2],clk,wen);
+    io8_16x1   io8_intr_bit(rout[1],raddr,rin[1],clk,wen);
+    io8_16x1   io8_out_bit(rout[0],raddr,rin[0],clk,wen);
 
 
     initial
@@ -168,11 +168,11 @@ module io8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 changepending <= 1;
 
             if (gst < 8)
-                gst <= gst + 1;
+                gst <= gst + 4'h1;
             else
             begin
-                bst <= bst + 1;  // next bit
-                gst <= (bst == 7) ? 0 : 4;
+                bst <= bst + 3'h1;  // next bit
+                gst <= (bst == 7) ? 3'h0 : 3'h4;
                 if (bst == 7)   // Done with all bits?
                 begin
                     if (changepending)
@@ -205,7 +205,7 @@ module io8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign datout = (~myaddr) ? datin :
                      (~strobe && myaddr && (dataready)) ? 8'h08 :  // send up 8 bytes when ready
                       (strobe) ? {5'h00,rout} : 
-                       0 ; 
+                       8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

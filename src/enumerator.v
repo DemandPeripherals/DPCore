@@ -76,7 +76,7 @@ module enumerator(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             imbusy <= 0;
             if (imbusy == 0)
             begin
-                addrptr <= addrptr + 1;
+                addrptr <= addrptr + 11'h001;
             end
         end
 

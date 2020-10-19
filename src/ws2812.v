@@ -87,10 +87,10 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
     wire   [3:0] targetwidth;  // one of 7,15,12,or 14 depending bit to send and outstate
 
 
-    assign targetwidth = (~wsdata[0] & outstate) ? 7 : // 350 ns for high part of a zero bit
-                         (~wsdata[0] & ~outstate) ? 15 : // 750 ns for low part of a zero bit
-                         (wsdata[0] & outstate) ? 12 : // 600 ns for high part of a one bit
-                         14;                           // 700 ns for low part of a one bit
+    assign targetwidth = (~wsdata[0] & outstate) ? 4'h7 :  // 350 ns (7) for high part of a zero bit
+                         (~wsdata[0] & ~outstate) ? 4'hf : // 750 ns (15) for low part of a zero bit
+                         (wsdata[0] & outstate) ? 4'hc :   // 600 ns (12) for high part of a one bit
+                         3'he;                             // 700 ns (14) for low part of a one bit
 
     initial
     begin
@@ -129,7 +129,7 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                     // Shift out the next bit and reset the pulse width counter
                     // if we are at the end of the pulse low part of the output.  
                     wsdata <= (wsdata >> 1);
-                    bitcnt <= bitcnt + 1;
+                    bitcnt <= bitcnt + 3'h1;
                     if (bitcnt == 7)
                     begin
                         firstwrite <= 1;
@@ -139,7 +139,7 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
             else
             begin
                 // continue waiting for end of pulsecnt
-                pulsecnt <= pulsecnt + 1;
+                pulsecnt <= pulsecnt + 4'h1;
             end
         end
     end

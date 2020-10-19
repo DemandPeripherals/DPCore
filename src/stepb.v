@@ -163,18 +163,18 @@ module stepb(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (pdiv == 0)
             begin
                 pdiv <= period;
-                target <= target - 1;
+                target <= target - 12'h001;
                 if (half)
-                    phac <= (dir) ? phac + 1 : phac - 1;
+                    phac <= (dir) ? phac + 3'h1 : phac - 3'h1;
                 else
-                    phac <= (dir) ? phac + 2 : phac - 2;
+                    phac <= (dir) ? phac + 3'h2 : phac - 3'h2;
             end
             else
-                pdiv <= pdiv - 1;
+                pdiv <= pdiv - 8'h01;
         end
         else if (u1clk && (target == 0))    // apply holding current
         begin
-            pdiv <= pdiv - 1;
+            pdiv <= pdiv - 8'h01;
         end
     end
 
@@ -192,17 +192,17 @@ module stepb(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                   ((full) && ((phac[2:1] == 2) || (phac[2:1] == 3))) ||
                   ((half) && ((phac[2:0] == 4) || (phac[2:0] == 5) || (phac[2:0] == 6)));
  
-    assign myaddr = (addr[15:8] == our_addr) && (addr[7:3] == 0);
+    assign myaddr = (addr[11:8] == our_addr) && (addr[7:3] == 0);
     assign datout = (~myaddr || ~rdwr) ? datin : 
                      (addr[2:0] == 0) ? {4'h0,target[11:8]} :
                      (addr[2:0] == 1) ? target[7:0] :
-                     (addr[2:0] == 2) ? 0 :   // Nothing to report for the increment register
-                     (addr[2:0] == 3) ? 0 :
+                     (addr[2:0] == 2) ? 8'h00 :   // Nothing to report for the increment register
+                     (addr[2:0] == 3) ? 8'h00 :
                      (addr[2:0] == 4) ? {3'h0,setup} :
                      (addr[2:0] == 5) ? period :
-                     (addr[2:0] == 6) ? 0 :
+                     (addr[2:0] == 6) ? 8'h00 :
                      (addr[2:0] == 7) ? {1'h0,holding} :
-                     0;
+                     8'h00;
 
     assign onoff = setup[4]; // on/off bit
 

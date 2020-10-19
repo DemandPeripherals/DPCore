@@ -176,17 +176,17 @@ module lcd6(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         if (~(strobe && myaddr && ~rdwr) && u100clk)
         begin
             if (gst < 6)
-                gst <= gst + 1;
+                gst <= gst + 4'h1;
             else if (gst == 6)     // done with bit write?
             begin
-                bst <= (bst == 47) ? 0 : bst + 1;
+                bst <= (bst == 47) ? 6'h00 : bst + 6'h01;
                 if (bst[2:0] != 7) // do CS if done with all 8 bits
                     gst <= 2;
                 else
-                    gst <= gst + 1;
+                    gst <= gst + 4'h1;
             end
             else if (gst == 7)
-                gst <= gst + 1;
+                gst <= gst + 4'h1;
             else if (gst == 8)     // done with byte write?
             begin
                 gst <= 0;
@@ -203,7 +203,7 @@ module lcd6(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:6] == 0);
     assign datout = (~myaddr) ? datin :
                     (strobe) ? {5'h00,rout} : 
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

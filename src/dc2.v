@@ -216,7 +216,7 @@ module dc2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
             if (count == period)
                 count <= 1;
             else
-                count <= count + 1;
+                count <= count + 10'h001;
 
             // Check for turn on, else check for turn off
             if (count > aon)
@@ -240,7 +240,7 @@ module dc2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
 
         // Handle the watchdog timer
         if (dogon && m100clk && (dogcnt != 0))
-            dogcnt <= dogcnt - 1;
+            dogcnt <= dogcnt - 4'h1;
 
     end
 
@@ -294,7 +294,7 @@ module dc2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                      (addr[2:0] == 5) ? boff[7:0] :
                      (addr[2:0] == 6) ? {dogon, 7'h00} : 
                      (addr[2:0] == 7) ? {4'h0, dogcnt} :
-                     0;
+                     8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

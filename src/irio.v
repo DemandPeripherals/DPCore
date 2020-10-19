@@ -154,7 +154,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 c38k <= ~c38k;
             end
             else
-                c76k <= c76k + 1;
+                c76k <= c76k + 4'h1;
         end
 
         // Handle reads and writes from the host
@@ -181,7 +181,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     state <= 1;
                 end
                 else
-                    main <= main +1;
+                    main <= main + 6'h01;
             end
             if (state == 1)          // Sending 4.4 ms pause after AGC
             begin
@@ -194,7 +194,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     c38k <= 0;
                 end
                 else
-                    main <= main +1;
+                    main <= main + 6'h01;
             end
             if (state == 2)          // Sending data bits
             begin
@@ -206,14 +206,14 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         inone <= 0;
                     end
                     else
-                        main <= main + 1;
+                        main <= main + 6'h01;
                 end
                 else  // must be in pause after bit's IR pulse
                 begin
                     if (((rxout == 0) && (main != 2)) ||
                         ((rxout == 1) && (main != 7)))
                     begin
-                        main <= main + 1;
+                        main <= main + 6'h01;
                     end
                     else  // done with this bit
                     begin
@@ -223,7 +223,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         end
                         else  // go to start of next bit
                         begin
-                            count <= count + 1;
+                            count <= count + 6'h01;
                         end
                         inone <= 1;
                         c38k <= 0;
@@ -240,7 +240,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     state <= 0;      // Let receiver listen for AGC pulse
                 end
                 else
-                    main <= main +1;
+                    main <= main + 6'h01;
             end
         end
 
@@ -254,7 +254,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             // Process the state machine
             if (state == 0)          // waiting for AGC
             begin
-                main <= (in0) ? (main + 1) : 0;
+                main <= (in0) ? (main + 6'h01) : 6'h00;
                 if (main == 40)      // 8 milliseconds ?
                     state <= 1;      // go to "in AGC"
             end
@@ -270,7 +270,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             begin
                 if (in0 == 0)
                 begin
-                    main <= main + 1;
+                    main <= main + 6'h01;
                     if (main == 6'h3f)   // error if main wraps while in pause period
                         state <= 0;  // Back to waiting for AGC pulse
                 end
@@ -295,7 +295,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 begin
                     if (in0 == 0)
                     begin
-                        main <= main + 1;
+                        main <= main + 6'h01;
                         if (main > 20)
                         begin
                             data_ready <= 1;
@@ -308,7 +308,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         // The value of main is stored in the shift register at this time
                         main <= 0;
                         inone <= 1;
-                        count <= count + 1;
+                        count <= count + 6'h01;
                         if (count == 5'h1f)   // Force packet end on bit 31
                         begin
                             data_ready <= 1;
@@ -335,7 +335,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     end
                     else             // input==1 so state in the 'inone==true' state
                     begin
-                        main <= main + 1;
+                        main <= main + 6'h01;
                     end
                 end
             end
@@ -347,7 +347,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign rxaddr = (strobe & myaddr) ? addr[4:0] : count[4:0] ;
     // data into the RAM is the data bus on host write or the IR signal on receive pkts
     assign rxin = (strobe & myaddr & ~rdwr & ~(addr[5:0] == 32)) ? datin[0] :
-                  (main > 4) ? 1 : 0;   // decide if bit is a zero or a one
+                  (main > 4) ? 1'b1 : 1'b0;   // decide if bit is a zero or a one
     // latch data while receiving IR or when getting a packet from the host
     assign wen  = ((state == 3) && (inone == 0) && (in0 == 1))  // start of next IR bit
                   | (strobe & myaddr & ~rdwr & ~(addr[5:0] == 32)); // latch host write
@@ -357,7 +357,7 @@ module irio(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign datout = (~myaddr) ? datin :
                     (~strobe && myaddr && data_ready) ? 8'h20 :  // Send 32 bytes if ready
                     (strobe) ? {7'h0,rxout} : 
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

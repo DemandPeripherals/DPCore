@@ -68,5 +68,22 @@
 `define SYS_RESET         2'b00
 
 
+/////////////////////////////////////////////////////////////////////////
+//
+//  SPI states and configuration definitions.
+`define IDLE         2'h0
+`define GETBYTE      2'h1
+`define SNDBYTE      2'h2
+`define SNDRPLY      2'h3
+`define CS_MODE_AL   2'h0   // Active low chip select
+`define CS_MODE_AH   2'h1   // Active high chip select
+`define CS_MODE_FL   2'h2   // Forced low chip select
+`define CS_MODE_FH   2'h3   // Forced high chip select
+`define CLK_2M       2'h0   // 2 MHz
+`define CLK_1M       2'h1   // 1 MHz
+`define CLK_500K     2'h2   // 500 KHz
+`define CLK_100K     2'h3   // 100 KHz
+
+
 // Force error when implicit net has no type.
 //`default_nettype none

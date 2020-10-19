@@ -65,11 +65,11 @@
 //  abort the current packet.
 //
 //  Waiting for the end of the current packet
-`define HF_WT_END           0
+`define HF_WT_END           2'h0
 //  In Packet waiting for RXF_ and the interface receiver to empty
-`define HF_IN_PKT           1
+`define HF_IN_PKT           2'h1
 //  In packet and got an ESC, get next character (should be 220 or 221)
-`define HF_IN_ESC           2
+`define HF_IN_ESC           2'h2
 
 
 

@@ -134,10 +134,10 @@ module quad2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                 period <= 0;                    // restart period counter
             end
             else
-                pollcount <= pollcount +1;
+                pollcount <= pollcount + 3'h1;
         end
         else if (u1clk)
-            period <= period + 1;
+            period <= period + 16'h0001;
 
 
         // Handle write requests from the host
@@ -158,7 +158,7 @@ module quad2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
             // host is reading RAM.  This won't affect the output since we are
             // delaying processing by one sysclk and the maximum input frequency
             // is one twentieth of sysclk.
-            inx <= inx + 1;
+            inx <= inx + 2'h1;
             if (inx == 3)  // sample inputs on next sysclk edge
             begin
                 // Bring inputs into our clock domain.
@@ -188,7 +188,7 @@ module quad2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
 
     // addmux is +1 or -1 depending inx, a_inc, and b_inc
     assign addmux = 
-                 (((inx == 0) && (a_inc == 1)) || ((inx == 2) && (b_inc == 1))) ? 1 :
+                 (((inx == 0) && (a_inc == 1)) || ((inx == 2) && (b_inc == 1))) ? 16'h0001 :
                  16'hffff ;
 
     // RAM address is block and inx, or !block and register address if a host read
@@ -196,7 +196,7 @@ module quad2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                                                                {1'b0, block, inx} ;
 
     // Clear RAM register on/after a read
-    assign rin = (strobe & myaddr & rdwr & (addr[7:3] == 0) & (addr[0] == 1)) ? 0 :
+    assign rin = (strobe & myaddr & rdwr & (addr[7:3] == 0) & (addr[0] == 1)) ? 16'h0000 :
                  ((inx == 0) && (a_inc == 1)) ? (rout + addmux) :
                  ((inx == 0) && (a_dec == 1)) ? (rout + addmux) :
                  ((inx == 1) && (a_inc == 1)) ? period :
@@ -215,7 +215,7 @@ module quad2(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                     (strobe & (addr[0] == 0)) ? rout[15:8] :
                     (strobe & (addr[0] == 1)) ? rout[7:0] :
                     (strobe & (addr[3] == 1)) ? {5'h0,pollclk} :
-                    0 ;
+                    8'h00 ;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

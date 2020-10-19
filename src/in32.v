@@ -165,10 +165,10 @@ module in32(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (rout[1] && (sample != rout[0]) && (gst == 4))
                 changepending <= 1;
             if (gst < 5)
-                gst <= gst + 1;
+                gst <= gst + 4'h1;
             else
             begin
-                bst <= bst + 1;  // next bit
+                bst <= bst + 5'h01;  // next bit
                 if (bst != 31)   // Done with all bits?
                     gst <= 3;
                 else
@@ -201,7 +201,7 @@ module in32(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign datout = (~myaddr) ? datin :
                      (~strobe && myaddr && (dataready)) ? 8'h20 :  // Send 32 bytes if ready
                       (strobe) ? {6'h00,rout} : 
-                       0 ; 
+                       8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

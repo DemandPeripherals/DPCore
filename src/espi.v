@@ -63,18 +63,19 @@
 //
 /////////////////////////////////////////////////////////////////////////
 
-`define IDLE         2'h0
-`define GETBYTE      2'h1
-`define SNDBYTE      2'h2
-`define SNDRPLY      2'h3
-`define CS_MODE_AL   2'h0   // Active low chip select
-`define CS_MODE_AH   2'h1   // Active high chip select
-`define CS_MODE_FL   2'h2   // Forced low chip select
-`define CS_MODE_FH   2'h3   // Forced high chip select
-`define CLK_2M       2'h0   // 2 MHz
-`define CLK_1M       2'h1   // 1 MHz
-`define CLK_500K     2'h2   // 500 KHz
-`define CLK_100K     2'h3   // 100 KHz
+// Copied from sysdefs.h
+// define IDLE         2'h0
+// define GETBYTE      2'h1
+// define SNDBYTE      2'h2
+// define SNDRPLY      2'h3
+// define CS_MODE_AL   2'h0   // Active low chip select
+// define CS_MODE_AH   2'h1   // Active high chip select
+// define CS_MODE_FL   2'h2   // Forced low chip select
+// define CS_MODE_FH   2'h3   // Forced high chip select
+// define CLK_2M       2'h0   // 2 MHz
+// define CLK_1M       2'h1   // 1 MHz
+// define CLK_500K     2'h2   // 500 KHz
+// define CLK_100K     2'h3   // 100 KHz
 
 
 module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
@@ -140,7 +141,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign smclk = (clksrc[1:0] == `CLK_2M)   ? (clkpre[0]) :
                    (clksrc[1:0] == `CLK_1M)   ? (clkpre[1:0] == 3) :
                    (clksrc[1:0] == `CLK_500K) ? ((clkpre[1:0] == 3) & n100clk) :
-                   (clksrc[1:0] == `CLK_100K) ? ((clkpre[0]) & u1clk) : 0 ;
+                   (clksrc[1:0] == `CLK_100K) ? ((clkpre[0]) & u1clk) : 1'b0 ;
 
     always @(posedge clk)
     begin
@@ -152,7 +153,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             (n100clk & (clksrc == `CLK_500K)) ||
             (u1clk & (clksrc == `CLK_100K)))
         begin
-            clkpre <= clkpre + 1;
+            clkpre <= clkpre + 2'h1;
         end
 
         if (smclk)
@@ -160,7 +161,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (clkdiv[2:0] == 4)
                 clkdiv[2:0] <= 0;
             else
-                clkdiv[2:0] <= clkdiv[2:0] + 1;
+                clkdiv[2:0] <= clkdiv[2:0] + 3'h1;
         end
 
         // Handle write and read requests from the host
@@ -182,7 +183,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             end
             else
             begin    // Getting bytes from the host.  Send SPI pkt when done
-                bytcnt <= bytcnt + 1;
+                bytcnt <= bytcnt + 4'h1;
                 if (bytcnt == mxaddr)
                 begin
                     state <= `SNDBYTE;
@@ -205,7 +206,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 if (bitcnt == 9)
                 begin
                     bitcnt <= 0;
-                    bytcnt <= bytcnt + 1;
+                    bytcnt <= bytcnt + 4'h1;
                     if (bytcnt == mxaddr)
                     begin
                         state <= `SNDRPLY;
@@ -213,7 +214,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 end
                 else
                 begin
-                    bitcnt <= bitcnt + 1;
+                    bitcnt <= bitcnt + 4'h1;
                 end
             end
         end 
@@ -234,7 +235,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     // Assign the outputs.
     assign rawcs = (csmode == `CS_MODE_AL) ? ~(state == `SNDBYTE) :
                    (csmode == `CS_MODE_AH) ? (state == `SNDBYTE) :
-                   (csmode == `CS_MODE_FH) ? 1 : 0;
+                   (csmode == `CS_MODE_FH) ? 1'b1 : 1'b0;
     assign a = (state == `SNDBYTE) & (bytcnt > 1) & (bitcnt < 8) & (clkdiv[2:0] == 0);
     assign b = ~(clkdiv[2:0] == 2);
     assign mosi = ((clkdiv[2:0] > 0) & (clkdiv[2:0] < 4)) ? rawcs :
@@ -268,7 +269,8 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (~strobe & (state == `SNDRPLY)) ? 8'h10 :  // all replies have 16 bytes
                     // send one byte if device is requesting service/interrupt
                     (~strobe & (state ==`IDLE) & (miso == int_pol) & (int_en) & (~int_pend)) ? 8'h01 :
-                    (strobe) ? dout : 0 ; 
+                    (strobe) ? dout :
+                    8'h00 ; 
     assign busy_out = busy_in;
     assign addr_match_out = myaddr | addr_match_in;
 

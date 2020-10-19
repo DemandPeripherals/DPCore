@@ -83,7 +83,7 @@ module qtr4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                     pollcount <= 1;         // restart polling counter
                 end
                 else
-                    pollcount <= pollcount +1;
+                    pollcount <= pollcount + 4'h1;
             end
         end
         else if (u10clk && (state == `CHARGING))
@@ -102,7 +102,7 @@ module qtr4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                 state <= `IDLE;
             end
             else
-                senscount <= senscount + 1;
+                senscount <= senscount + 8'h01;
         end
 
 
@@ -120,10 +120,10 @@ module qtr4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
         end
     end
 
-    assign q[0] = (state == `CHARGING) ? 1 : 1'bz ;
-    assign q[1] = (state == `CHARGING) ? 1 : 1'bz ;
-    assign q[2] = (state == `CHARGING) ? 1 : 1'bz ;
-    assign q[3] = (state == `CHARGING) ? 1 : 1'bz ;
+    assign q[0] = (state == `CHARGING) ? 1'b1 : 1'bz ;
+    assign q[1] = (state == `CHARGING) ? 1'b1 : 1'bz ;
+    assign q[2] = (state == `CHARGING) ? 1'b1 : 1'bz ;
+    assign q[3] = (state == `CHARGING) ? 1'b1 : 1'bz ;
 
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:2] == 0);
     assign datout = (~myaddr) ? datin : 
@@ -132,7 +132,7 @@ module qtr4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                     (strobe & (addr[1:0] == 0)) ? {4'h0,qtrval} :
                     (strobe & (addr[1:0] == 1)) ? sensitivity :
                     (strobe & (addr[1:0] == 2)) ? {4'h0,polltime} :
-                    0 ;
+                    8'h00 ;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

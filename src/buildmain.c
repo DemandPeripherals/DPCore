@@ -282,9 +282,9 @@ int perilist(int addr, int startpin, char * peri)
 int bb4io(int addr, int startpin, char * peri)
 {
     fprintf(stdout,"\n    wire [7:0] p%02dleds;", addr);
-    fprintf(stdout,"\n    wire [7:0] p%02dbntn1;", addr);
-    fprintf(stdout,"\n    wire [7:0] p%02dbntn2;", addr);
-    fprintf(stdout,"\n    wire [7:0] p%02dbntn3;", addr);
+    fprintf(stdout,"\n    wire p%02dbntn1;", addr);
+    fprintf(stdout,"\n    wire p%02dbntn2;", addr);
+    fprintf(stdout,"\n    wire p%02dbntn3;", addr);
     printbus(addr, peri);
     fprintf(stdout, "        p%02dleds,p%02dbntn1,p%02dbntn2,p%02dbntn3);\n", addr,addr,addr,addr);
     fprintf(stdout, "    assign p%02dbntn1 = BNTN1;\n", addr);

@@ -112,14 +112,14 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 ((sensor == 1) && (enabled[1] == 0)) ||
                 ((sensor == 2) && (enabled[2] == 0)) ||
                 ((sensor == 3) && (enabled[3] == 0)))
-                sensor <= sensor + 1;
+                sensor <= sensor + 2'h1;
             else if (deadtimer == 0)  // start on 30 ms boundary
             begin
                 state <= 1;
                 timer <= -6;
             end
             else if (m10clk)
-                deadtimer <= deadtimer - 1;
+                deadtimer <= deadtimer - 2'h1;
         end
         if (state == 1)  // Sending the start pulse to the PNG))), output=1
         begin
@@ -131,7 +131,7 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     timer <= -512;
                 end
                 else
-                    timer <= timer + 1;
+                    timer <= timer + 15'h0001;
             end
         end
         if (state == 2)  // Dead time waiting to switch line direction, output=0
@@ -144,7 +144,7 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     timer <= -512;
                 end
                 else
-                    timer <= timer + 1;
+                    timer <= timer + 15'h0001;
             end
         end
         if (state == 3)  // Waiting for a low-to-high transition or a timeout, output=Z
@@ -162,13 +162,13 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     timer <= 0;
                 end
                 else
-                    timer <= timer + 1;
+                    timer <= timer + 15'h0001;
             end
         end
         if (state == 4)  // Waiting for the input to go low again
         begin
             if (u1clk)
-                timer <= timer + 1;
+                timer <= timer + 15'h0001;
             if (meta1 == 0)
                 state <= 5;
         end
@@ -177,7 +177,7 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             if (strobe && myaddr)  // Poll.  Go start another reading
             begin
                 state <= 0;
-                sensor <= sensor + 1;
+                sensor <= sensor + 2'h1;
                 deadtimer <= 3;
             end
         end
@@ -185,27 +185,27 @@ module ping4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     end
 
     // Assign the outputs.
-    assign png[0] = ((enabled[0] == 0) || (sensor != 0)) ? 0 :
-                    (state == 1) ?   1    :
-                    ((state == 0) || (state == 2)) ? 0 : 1'bz ;
-    assign png[1] = ((enabled[1] == 0) || (sensor != 1)) ? 0 :
-                    (state == 1) ?   1    :
-                    ((state == 0) || (state == 2)) ? 0 : 1'bz ;
-    assign png[2] = ((enabled[2] == 0) || (sensor != 2)) ? 0 :
-                    (state == 1) ?   1    :
-                    ((state == 0) || (state == 2)) ? 0 : 1'bz ;
-    assign png[3] = ((enabled[3] == 0) || (sensor != 3)) ? 0 :
-                    (state == 1) ?   1    :
-                    ((state == 0) || (state == 2)) ? 0 : 1'bz ;
+    assign png[0] = ((enabled[0] == 0) || (sensor != 0)) ? 1'b0 :
+                    (state == 1) ?   1'b1    :
+                    ((state == 0) || (state == 2)) ? 1'b0 : 1'bz ;
+    assign png[1] = ((enabled[1] == 0) || (sensor != 1)) ? 1'b0 :
+                    (state == 1) ?   1'b1    :
+                    ((state == 0) || (state == 2)) ? 1'b0 : 1'bz ;
+    assign png[2] = ((enabled[2] == 0) || (sensor != 2)) ? 1'b0 :
+                    (state == 1) ?   1'b1    :
+                    ((state == 0) || (state == 2)) ? 1'b0 : 1'bz ;
+    assign png[3] = ((enabled[3] == 0) || (sensor != 3)) ? 1'b0 :
+                    (state == 1) ?   1'b1    :
+                    ((state == 0) || (state == 2)) ? 1'b0 : 1'bz ;
 
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:2] == 0);
     assign datout = (~myaddr) ? datin : 
                     (~strobe & (state == 5)) ? 8'h03 : // send 3 bytes when a sample is ready
-                    (strobe && (addr[1:0] == 0)) ? {2'h0,timer[14:8]} :
+                    (strobe && (addr[1:0] == 0)) ? {1'h0,timer[14:8]} :
                     (strobe && (addr[1:0] == 1)) ? timer[7:0] :
                     (strobe && (addr[1:0] == 2)) ? {6'h00,sensor} :
                     (strobe && (addr[1:0] == 3)) ? {4'h0,enabled} :
-                    0;
+                    8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

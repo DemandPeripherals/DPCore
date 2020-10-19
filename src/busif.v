@@ -160,7 +160,7 @@ module busif(clk, phydatin, phyrxf_, phyrd_, pkt_in, phydatout,
                     else  // No new data at that address, try the next
                     begin
                         paddr[11:8] <= polladdr;
-                        polladdr <= polladdr - 1;
+                        polladdr <= polladdr - 4'h1;
                     end
                     paddr[7:0] <= 0;
                 end
@@ -273,9 +273,9 @@ module busif(clk, phydatin, phyrxf_, phyrd_, pkt_in, phydatout,
             if (phytxe_ == 0)
             begin
                 state <= `BI_RD_WORD;
-                count <= count - 1;
+                count <= count - 8'h01;
                 if ((cmd & `CMD_SAME_FIELD) == `CMD_SUCC_REG)
-                    paddr <= paddr + 1;
+                    paddr <= paddr + 12'h001;
             end
         end
 
@@ -303,7 +303,7 @@ module busif(clk, phydatin, phyrxf_, phyrd_, pkt_in, phydatout,
                 state <= `BI_WR_ABORT;
             else
             begin
-                count <= count -1;
+                count <= count - 8'h01;
                 if (count == 1)   // ALL DONE ???
                     state <= `BI_SN_DCNT;
                 //else if ((cmd & `CMD_LEN_FIELD) == `CMD_WORD16)
@@ -316,7 +316,7 @@ module busif(clk, phydatin, phyrxf_, phyrd_, pkt_in, phydatout,
                 begin
                     state <= `BI_WR_LODA;
                     if ((cmd & `CMD_SAME_FIELD) == `CMD_SUCC_REG)
-                        paddr <= paddr + 1;
+                        paddr <= paddr + 12'h001;
                 end
             end
         end

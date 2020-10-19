@@ -102,9 +102,10 @@ module gpio4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:2] == 0);
     assign datout = (~myaddr) ? datin : 
                     (~strobe & marked) ? 8'h01 :   // send up one byte if data available
-                     (strobe && (addr[1:0] == 0)) ? {12'h000,meta1} :
-                     (strobe && (addr[1:0] == 1)) ? {12'h000,dir} :
-                     (strobe && (addr[1:0] == 2)) ? {12'h000,mask} : 0;
+                     (strobe && (addr[1:0] == 0)) ? {4'h0,meta1} :
+                     (strobe && (addr[1:0] == 1)) ? {4'h0,dir} :
+                     (strobe && (addr[1:0] == 2)) ? {4'h0,mask} :
+                     8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

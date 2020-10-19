@@ -136,10 +136,10 @@ module count4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                 period <= 0;                    // restart period counter
             end
             else
-                pollcount <= pollcount +1;
+                pollcount <= pollcount + 3'h1;
         end
         else if (u1clk)
-            period <= period + 1;
+            period <= period + 16'h0001;
 
 
         // Handle write requests from the host
@@ -163,7 +163,7 @@ module count4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
             // host is reading RAM.  This won't affect the output since we are
             // delaying processing by one sysclk and the maximum input frequency
             // is one twentieth of sysclk.
-            inx <= inx + 1;
+            inx <= inx + 3'h1;
             if (inx == 7)  // sample inputs 
             begin
                 // Set current to old to get ready for next cycle
@@ -197,13 +197,13 @@ module count4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                                               {block, inx} ;
     // Clear count RAM register on/after a read
     assign crin = (strobe & myaddr & rdwr & (addr[7:4] == 0) & (addr[1:0] == 2'b01)) ? 0 :
-                 ((inx == 0) && (cedge[0] == 1)) ? (crout + 1) :
+                 ((inx == 0) && (cedge[0] == 1)) ? (crout + 16'h0001) :
                  ((inx == 1) && (cedge[0] == 1)) ? period :
-                 ((inx == 2) && (cedge[1] == 1)) ? (crout + 1) :
+                 ((inx == 2) && (cedge[1] == 1)) ? (crout + 16'h0001) :
                  ((inx == 3) && (cedge[1] == 1)) ? period :
-                 ((inx == 4) && (cedge[2] == 1)) ? (crout + 1) :
+                 ((inx == 4) && (cedge[2] == 1)) ? (crout + 16'h0001) :
                  ((inx == 5) && (cedge[2] == 1)) ? period :
-                 ((inx == 6) && (cedge[3] == 1)) ? (crout + 1) :
+                 ((inx == 6) && (cedge[3] == 1)) ? (crout + 16'h0001) :
                  ((inx == 7) && (cedge[3] == 1)) ? period :
                  crout ;
 
@@ -214,7 +214,7 @@ module count4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                     (strobe & (addr[4]) & (addr[0])) ? mode :
                     (strobe & (addr[0] == 0)) ? crout[15:8] :
                     (strobe & (addr[0] == 1)) ? crout[7:0] :
-                    0 ;
+                    8'h00 ;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

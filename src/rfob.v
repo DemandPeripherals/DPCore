@@ -141,7 +141,7 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         // Look for preamble on edges of m1clk
         else if ((state == 0) & m1clk)
         begin
-            main <= main + 1;
+            main <= main + 4'h1;
             if (main == 11)
             begin
                 state <= 1;
@@ -180,7 +180,7 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 smplsum <= smplsum + dflt;
 
                 // decrement the sample counter and see if we're at bit end
-                scount <= scount - 1;
+                scount <= scount - 8'h1;
                 if (scount == 0)
                 begin
                     // Done sampling the bit.
@@ -188,7 +188,7 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     // The ram input will reflect the bit value.
                     // We now start waiting for the next bit (or postamble timeout)
                     state <= 3;   // go to zero-bit low time
-                    databit <= (smplsum > (smplcnt[7:1])) ? 1 : 0 ;
+                    databit <= (smplsum > (smplcnt[7:1])) ? 1'b1 : 1'b0 ;
                 end
             end
             else if (state == 3)
@@ -200,7 +200,7 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 if (dflt == 1)
                 begin
                     // Saw a high edge, Go to in-bit
-                    bitcnt <= bitcnt + 1;
+                    bitcnt <= bitcnt + 5'h01;
                     scount <= smplcnt;
                     smplsum <= 0;
                     state <= 2;
@@ -208,7 +208,7 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 else
                 begin
                     // we are still waiting for the high edge of the next bit.
-                    scount <= scount - 1;
+                    scount <= scount - 8'h01;
                     if (scount == 0)    // 255 counts to reach zero.  No more bits
                     begin
                         if (bitcnt == pktbits)
@@ -242,14 +242,12 @@ module rfob(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign datout = (~myaddr) ? datin :
                     (~strobe && (state == 4)) ? 8'h18 :  // 24 bytes to send
                     (strobe) ? {7'h0,rxout} : 
-                    0 ; 
-
-    assign raddr = (strobe & myaddr) ? addr[4:1] : 4'h0000 ;
+                    8'h00 ; 
 
     assign busy_out = busy_in;
     assign addr_match_out = myaddr | addr_match_in;
 
-    assign pwml = (state != 0) ? 1 : 0;
+    assign pwml = (state != 0) ? 1'b1 : 1'b0;
     assign pwmh = pktflag;
 
 endmodule

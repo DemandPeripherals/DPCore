@@ -74,7 +74,8 @@ module out4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:1] == 0);
     assign datout = (~myaddr) ? datin : 
-                     (strobe && (addr[0] == 0)) ? {4'h0,val} : 0;
+                     (strobe && (addr[0] == 0)) ? {4'h0,val} :
+                     8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

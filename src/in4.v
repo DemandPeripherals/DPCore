@@ -89,7 +89,7 @@ module in4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (~strobe & marked) ? 8'h01 :  // Send data to host if ready
                      (strobe && (addr[0] == 0)) ? {4'h0,meta1} :
                      (strobe && (addr[0] == 1)) ? {4'h0,mask} :
-                     0;
+                     8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

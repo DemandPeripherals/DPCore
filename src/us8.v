@@ -175,7 +175,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         begin
             // Decrement the global 60 ms timer
             if (m10clk == 1)
-                mscntr <= (mscntr == 0) ? 5 : (mscntr - 1);
+                mscntr <= (mscntr == 0) ? 3'h5 : (mscntr - 3'h1);
 
             if (u10clk == 1)
             begin
@@ -192,7 +192,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 //  SNST==1,    Wait for 10 microseconds
                 else if (snst == 1)
                 begin
-                    timr <= timr + 1;
+                    timr <= timr + 12'h001;
                     // at 100 KHz, timr bit 1 goes high at 10 us
                     if (timr[3])
                     begin
@@ -215,7 +215,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         snst <= 4;        // go find next snid
                     end
                     else
-                        timr <= timr + 1;
+                        timr <= timr + 12'h001;
                 end
                 // SNST==3 wait for line to go low or for 40 ms
                 else if (snst == 3)
@@ -226,14 +226,14 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         snst <= 4;
                     end
                     else
-                        timr <= timr + 1;
+                        timr <= timr + 12'h001;
                 end
                 // SNST==4    Wait for mscntr to not be zero and for dataready to be zero
                 else if (snst == 4)
                 begin
                     if ((mscntr != 0) && ~dataready)
                     begin
-                        snid <= snid + 1;
+                        snid <= snid + 3'h1;
                         snst <= 5;
                     end
                 end
@@ -241,7 +241,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 else if (snst == 5)   
                 begin
                     if (enbl[snid] == 0)
-                        snid <= snid + 1;
+                        snid <= snid + 3'h1;
                     else
                         snst <= 0;
                 end
@@ -263,7 +263,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
             gotecho <= 0;
         else if (gst < 9)
         begin
-            gst <= gst + 1;
+            gst <= gst + 4'h1;
             if ((gst ==6) && (~bst[2] == snid[2]) && (~bst[1] == snid[1]) && (~bst[0] == snid[0]))
                 if ((sample == 1) && (snst == 2))
                     gotecho <= 1;
@@ -272,8 +272,8 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         end
         else
         begin
-            gst <= (bst == 7) ? 0 : 6;
-            bst <= bst + 1;
+            gst <= (bst == 7) ? 4'h0 : 4'h6;
+            bst <= bst + 3'h1;
         end
     end
 
@@ -290,7 +290,7 @@ module us8(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                     (strobe && (addr[1:0] == 0)) ? timr[7:0] : 
                     (strobe && (addr[1:0] == 1)) ? {1'b0,snid,timr[11:8]} :
                     (strobe && (addr[1:0] == 2)) ? enbl[7:0] :
-                    0 ; 
+                    8'h00 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;
