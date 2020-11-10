@@ -55,6 +55,7 @@ int dc2(int, int, char *);
 int pgen16(int, int, char *);
 int quad2(int, int, char *);
 int qtr4(int, int, char *);
+int qtr8(int, int, char *);
 int roten(int, int, char *);
 int count4(int, int, char *);
 int ping4(int, int, char *);
@@ -103,6 +104,7 @@ struct ENUMERATORS enumerators[] = {
     {"pwmout4", "pgen16", "pwmout4", pgen16 },
     {"quad2", "quad2", "quad2", quad2 },
     {"qtr4", "qtr4", "qtr4", qtr4 },
+    {"qtr8", "qtr8", "qtr8", qtr8 },
     {"roten", "roten", "roten", roten },
     {"count4", "count4", "count4", count4 },
     {"touch4", "count4", "touch4", count4 },
@@ -403,6 +405,26 @@ int qtr4(int addr, int startpin, char * peri)
     fprintf(stdout, "    assign `PIN_%02d = p%02dq[2];\n", startpin+2, addr);
     fprintf(stdout, "    assign `PIN_%02d = p%02dq[3];\n", startpin+3, addr);
     return(startpin +4);
+}
+
+int qtr8(int addr, int startpin, char * peri)
+{
+    fprintf(stdout,"\n    wire p%02dm10clk;", addr);
+    fprintf(stdout,"\n    wire p%02du10clk;", addr);
+    fprintf(stdout,"\n    tri [7:0] p%02dq;", addr);
+    printbus(addr, peri);
+    fprintf(stdout, "    p%02dm10clk,p%02du10clk,p%02dq);\n", addr, addr, addr);
+    fprintf(stdout, "    assign p%02dm10clk = bc0m10clk;\n", addr);
+    fprintf(stdout, "    assign p%02du10clk = bc0u10clk;\n", addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[0];\n", startpin, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[1];\n", startpin+1, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[2];\n", startpin+2, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[3];\n", startpin+3, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[4];\n", startpin+4, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[5];\n", startpin+5, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[6];\n", startpin+6, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dq[7];\n", startpin+7, addr);
+    return(startpin +8);
 }
 
 int roten(int addr, int startpin, char * peri)
