@@ -33,19 +33,12 @@
 //
 //  Accept up to 256 bytes from the host and shift each bit out
 //  using the timing defined for the World Semi ws2812 RGB(W) LED.
-//  A zero bit is high for 350 ns and low for 800.  A one bit is
-//  high for 700 ns and low for 600.
-//
-//  The hardware has a 7474 and a two input data selector.  Pin
-//  0 is the D input and pin 1 is the clock line.  This lets the
-//  circuit tolerate ringing.  The high two pins go to the mux
-//  A and B inputs.  The Q output goes to the chip select of the
-//  mux.  This makes the four mux outputs the four ws2812 drive
-//  lines.
+//  A zero bit is high for 300 ns and low for 700.  A one bit is
+//  high for 700 ns and low for 300.
 //
 //  Because of the large amount of data and the fairly high
 //  output frequency the circuit uses the busy line to apply
-//  back pressure to the bus interface.  A 265 byte packet
+//  back pressure to the bus interface.  A 256 byte packet
 //  takes about 2.5 ms.  This can limit the USB bandwidth.
 //
 //  Use the 'no-increment' write command so send multiple bytes
@@ -56,12 +49,11 @@
 //    Addr=1    WS2812 data for output 1
 //    Addr=2    WS2812 data for output 2
 //    Addr=3    WS2812 data for output 3
-//
-// NOTES:
+//    Addr=4    Config: LSB=invertoutput
 //
 /////////////////////////////////////////////////////////////////////////
 module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
-              addr_match_out,datin,datout,dline,clkline,muxa,muxb);
+              addr_match_out,datin,datout,led1,led2,led3,led4);
     input  clk;              // system clock
     input  rdwr;             // direction of this transfer. Read=1; Write=0
     input  strobe;           // true on full valid command
@@ -73,28 +65,32 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
     output addr_match_out;   // ==1 if we claim the above address, pass through otherwise
     input  [7:0] datin ;     // Data INto the peripheral;
     output [7:0] datout ;    // Data OUTput from the peripheral, = datin if not us.
-    output dline;            // D input to the 7474
-    output clkline;          // Clock line to the 7474
-    output muxa;             // 2-to-4 mux input A
-    output muxb;             // 2-to-4 mux input B
+    output led1;             // The WS2812 din lines
+    output led2;             //
+    output led3;             //
+    output led4;             //
  
     wire   myaddr;           // ==1 if a correct read/write on our address
     reg    [7:0] wsdata;     // ws2813 byte to send
     reg    firstwrite;       // set if this is the first clock of a ws2812 write
+                             // firstwrite is needed since an xfer spans many sysclks.
     reg    [2:0] bitcnt;     // counter for which bit we are sending
     reg    [3:0] pulsecnt;   // the number of sysclk to hold the output high or low
     reg    outstate;         // whether we are in the high or low part of an output pulse
+    reg    invertoutput;     // invert output to pins fi set
     wire   [3:0] targetwidth;  // one of 7,15,12,or 14 depending bit to send and outstate
+    wire   inxfer;           // doing a transfer
 
-
-    assign targetwidth = (~wsdata[0] & outstate) ? 4'h7 :  // 350 ns (7) for high part of a zero bit
-                         (~wsdata[0] & ~outstate) ? 4'hf : // 750 ns (15) for low part of a zero bit
-                         (wsdata[0] & outstate) ? 4'hc :   // 600 ns (12) for high part of a one bit
-                         3'he;                             // 700 ns (14) for low part of a one bit
+    `define ADDRCONFIG (4)
+    assign targetwidth = (~wsdata[7] & outstate) ?  4'h6 : // 300 ns (6) for high part of a zero bit
+                         (~wsdata[7] & ~outstate) ? 4'he : // 700 ns (14) for low part of a zero bit
+                         (wsdata[7] & outstate) ?   4'he : // 700 ns (14) for high part of a one bit
+                                                    4'h6;  // 300 ns (6) for low part of a one bit
 
     initial
     begin
         firstwrite = 1;
+        invertoutput = 0;
     end
 
     always @(posedge clk)
@@ -103,13 +99,17 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
         begin
             firstwrite <= 1;          // reset firstwrite
             bitcnt <= 0;
-            outstate <= 1;
+            outstate <= 0;
             pulsecnt <= 0;
         end
+        // Handle write requests from the host
+        if (strobe & myaddr & ~rdwr & (addr[2:0] == `ADDRCONFIG))  // invertoutput == Addr4
+            invertoutput <= datin[0]; 
         else if (strobe & ~rdwr & firstwrite)  // latch on first sysclk of write
         begin
             wsdata <= datin[7:0];
             firstwrite <= 0;          // set flag to run state machine
+            outstate <= 1;
         end
         else if (strobe & ~rdwr & ~firstwrite)  // write but not first sysclk
         begin
@@ -117,7 +117,6 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
             // the bits in wsdata.  The shift counter is bitcnt, the pulse width
             // counter is pulsecnt, and whether we are in the high or low part of
             // output pulse is set by outstate.
-
 
             // The wire targetwidth has the desired high/low count for pulsecnt.
             if (pulsecnt == targetwidth)
@@ -128,7 +127,8 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
                 begin
                     // Shift out the next bit and reset the pulse width counter
                     // if we are at the end of the pulse low part of the output.  
-                    wsdata <= (wsdata >> 1);
+                    // Shift up since data is sent MSB first.
+                    wsdata <= (wsdata << 1);
                     bitcnt <= bitcnt + 3'h1;
                     if (bitcnt == 7)
                     begin
@@ -145,17 +145,33 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
     end
 
     // Assign the outputs.
-    assign dline = outstate;
-    assign clkline = ((pulsecnt == 2) & ~firstwrite);
-    assign muxa = addr[0] & ~firstwrite;
-    assign muxb = addr[1] & ~firstwrite;
+    // in transfer if not last bit, low output, and final pulsewidth count
+    assign inxfer = ~((bitcnt == 7) & (outstate == 0) & (pulsecnt == targetwidth));
+    // led data valid if in an transfer.  invert output if set
+    assign led1 = ((addr[2:0] == 0) & inxfer & outstate) ^ invertoutput;
+    assign led2 = ((addr[2:0] == 1) & inxfer & outstate) ^ invertoutput;
+    assign led3 = ((addr[2:0] == 2) & inxfer & outstate) ^ invertoutput;
+    assign led4 = ((addr[2:0] == 3) & inxfer & outstate) ^ invertoutput;
+
+    // Alternate pin assignments that put all LED data on pin1, (You can
+    // connect and LED to pin1 if you want.)  Pin2 is a clock strobe that
+    // if connected to a D flip-flop can latch the LED data.  This can be
+    // really useful if the LEDs are some distance from the FPGA and there
+    // might be ringing on the lines.  The D flip-flop is close to the LEDs.
+    //assign led1 = inxfer & outstate;              // goes to the 7474 D input
+    //assign led2 = ((pulsecnt == 2) & ~firstwrite);   // goes to the clk input
+    //assign led3 = addr[0] & inxfer & ~firstwrite;    // 74138 mux input A
+    //assign led4 = addr[1] & inxfer & ~firstwrite;    // 74138 mux input B
+
 
     // Delay while we output the ws2812 data.
-    // Lower busy when bitcnt==7, outstate==0, and pulsecnt==target
+    // Busy_out is busy_in if not us.  Config writes take one clock cycle
+    // so we don't assert busy_out for them.  We assert busy_out while we
+    // are sending data to the LEDs.
     assign busy_out = (~myaddr) ? busy_in : 
-                      ~((bitcnt == 7) & (outstate == 0) & (pulsecnt == targetwidth));
+                      (addr[2:0] == `ADDRCONFIG) ? 0 : inxfer ;
 
-    assign myaddr = (addr[11:8] == our_addr) && (addr[7:2] == 0);
+    assign myaddr = (addr[11:8] == our_addr) && (addr[7:3] == 0);
 
     // Loop in-to-out where appropriate
     assign addr_match_out = myaddr | addr_match_in;

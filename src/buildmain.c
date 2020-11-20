@@ -573,12 +573,12 @@ int adc12(int addr, int pin, char * peri)
 int ws2812(int addr, int pin, char * peri)
 {
     printbus(addr, "ws2812");
-    fprintf(stdout, "    p%02ddline,p%02dclkline,", addr,addr);
-    fprintf(stdout, "    p%02dmuxa,p%02dmuxb);\n", addr,addr);
-    fprintf(stdout, "    assign `PIN_%02d = p%02ddline;\n", pin, addr);
-    fprintf(stdout, "    assign `PIN_%02d = p%02dclkline;\n", pin+1, addr);
-    fprintf(stdout, "    assign `PIN_%02d = p%02dmuxa;\n", pin+2, addr);
-    fprintf(stdout, "    assign `PIN_%02d = p%02dmuxb;\n", pin+3, addr);
+    fprintf(stdout, "    p%02dled1,p%02dled2,", addr,addr);
+    fprintf(stdout, "    p%02dled3,p%02dled4);\n", addr,addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dled1;\n", pin, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dled2;\n", pin+1, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dled3;\n", pin+2, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dled4;\n", pin+3, addr);
     return(pin +4);
 }
 
