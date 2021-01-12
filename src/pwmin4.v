@@ -1,5 +1,5 @@
 // *********************************************************
-// Copyright (c) 2020 Demand Peripherals, Inc.
+// Copyright (c) 2020-2021 Demand Peripherals, Inc.
 // 
 // This file is licensed separately for private and commercial
 // use.  See LICENSE.txt which should have accompanied this file
@@ -22,9 +22,6 @@
 // ALLOWED), AND ASSUME ANY RISKS ASSOCIATED WITH YOUR EXERCISE OF
 // PERMISSIONS UNDER THIS AGREEMENT.
 // 
-// This software may be covered by US patent #10,324,889. Rights
-// to use these patents is included in the license agreements.
-// See LICENSE.txt for more information.
 // *********************************************************
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,8 +90,14 @@
 //  made three transitions.
 //
 /////////////////////////////////////////////////////////////////////////
+
+`define STIDLE      2'h0
+`define STSAMPLING  2'h1
+`define STDATREADY  2'h2
+`define STHOSTSEND  2'h3
+
 module pwmin4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
-       addr_match_in,addr_match_out,datin,datout,
+       addr_match_in,addr_match_out,datin,datout,pollevt,
        m100clk,m10clk,m1clk,u100clk,u10clk,u1clk,n100clk,pwm);
     input  clk;              // system clock
     input  rdwr;             // direction of this transfer. Read=1; Write=0
@@ -107,6 +110,7 @@ module pwmin4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     output addr_match_out;   // ==1 if we claim the above address, pass through otherwise
     input  [7:0] datin ;     // Data INto the peripheral;
     output [7:0] datout ;    // Data OUTput from the peripheral, = datin if not us.
+    input  pollevt;          // 4 millisecond pulse to trigger an autosend
     input  m100clk;          // 100 Millisecond clock pulse
     input  m10clk;           // 10 Millisecond clock pulse
     input  m1clk;            // Millisecond clock pulse
@@ -117,19 +121,22 @@ module pwmin4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     input  [3:0] pwm;        // PWM in signals
 
 
-    // PWM generation lines
+    // PWM lines
     reg    [15:0] main;      // Main PWM comparison clock
     wire   lclk;             // Prescale clock
     reg    lreg;             // Prescale clock divided by two
     reg    [3:0] freq;       // Input frequency selector
     reg    [3:0] old;        // Input values being brought into our clock domain
     reg    [3:0] new;        // Input values being brought into our clock domain
+    reg    [3:0] first;      // Pin values at start of sampling
     reg    [3:0] edgcount;   // Count of transitions in the current cycle
-    reg    [1:0] state;      // Waiting for first edge, counting edges, waiting for host send
+    reg    [1:0] state;      // 
     reg    [1:0] ec0;        // Transition counter
     reg    [1:0] ec1;        // Transition counter
     reg    [1:0] ec2;        // Transition counter
     reg    [1:0] ec3;        // Transition counter
+    wire   validedge;        // An edge to be recorded
+    wire   sampleclock;      // derived clock to sample inputs
 
     // Addressing and bus interface lines 
     wire   myaddr;           // ==1 if a correct read/write on our address
@@ -140,26 +147,41 @@ module pwmin4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     wire   ramwen;           // RAM write enable
     ram16x8 timeregramL(doutl,raddr,main[7:0],clk,ramwen); // Register array in RAM
     ram16x8 timeregramH(douth,raddr,main[15:8],clk,ramwen);
-    ram16x4 edgeregram(ramedge,raddr,old,clk,ramwen);
+    ram16x4 edgeregram(ramedge,raddr,new,clk,ramwen);
 
 
     // Generate the clock source for the main counter
-    assign lclk = (freq[3:1] == 0) ? 0 :
+    assign lclk = (freq[3:1] == 0) ? 1'h0 :
                   (freq[3:1] == 1) ? n100clk :
                   (freq[3:1] == 2) ? u1clk :
                   (freq[3:1] == 3) ? u10clk :
                   (freq[3:1] == 4) ? u100clk :
                   (freq[3:1] == 5) ? m1clk :
                   (freq[3:1] == 6) ? m10clk : m100clk; 
+    assign sampleclock = ((state == `STSAMPLING) && ((freq == 1) ||
+                   ((freq[0] == 0) && (lclk == 1)) ||
+                   ((freq[0] == 1) && (lreg == 1) && (lclk == 1))));
 
+
+    // We consider at most 3 edges for each input
+    assign validedge = (((old[0] != new[0]) && (ec0 != 3)) ||
+                        ((old[1] != new[1]) && (ec1 != 3)) ||
+                        ((old[2] != new[2]) && (ec2 != 3)) ||
+                        ((old[3] != new[3]) && (ec3 != 3)));
+
+
+    // Init all counters and state to zero
     initial
     begin
-        state = 0;       // Waiting for first transition
-        freq = 0 ;       // no clock running to start
+        state = `STSAMPLING;  // start ready to sample
+        freq = 0 ;           // no clock running to start
+        main = 0;
         ec0 = 0;
         ec1 = 0;
         ec2 = 0;
         ec3 = 0;
+        old = 0;
+        new = 0;
     end
 
 
@@ -169,98 +191,78 @@ module pwmin4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         if (lclk)
             lreg <= ~lreg;
 
-        // latch clock selector into flip-flops
-        if (strobe && ~rdwr && myaddr && (addr[5:0] == 48))
+        // Reset all state information when the host reads or writes config
+        if (strobe && myaddr && (addr[5:0] == 48))
         begin
-            freq    <= datin[3:0];
-        end
+            // latch clock source if a write
+            if (~rdwr)
+            begin
+                freq <= datin[3:0];
+            end
 
-        // Reset all state information when the host reads the transition count
-        if (strobe && myaddr && rdwr && (addr[5:0] == 48))
-        begin
-            main <= 0;
-            state <= 0;
+            // start/restart sampling on any host access
+            state <= `STSAMPLING;  // start sampling
             edgcount <= 0;
             ec0 <= 0;
             ec1 <= 0;
             ec2 <= 0;
             ec3 <= 0;
+            old <= pwm;          // no edges at start of sampling
+            new <= pwm;          // no edges at start of sampling
+            first <= pwm;
         end
 
-        // Else do input processing on a clock edge
-        else if ((freq == 1) ||
-                 ((freq[0] == 0) && (lclk == 1)) ||
-                 ((freq[0] == 1) && (lreg == 1) && (lclk == 1)))
+        // Else do input processing on a sampling clock edge
+        else if (sampleclock)
         begin
-            // bring the inputs into our clock domain
+            // Get old versus new to do edge detection
             new <= pwm;
             old <= new;
 
             // Do state machine processing
-            if (state == 0)  // waiting for first transition
+            if (validedge)
             begin
-                if ((old ^ new) != 0)
-                begin
-                    if ((old[0] != new[0]) && (ec0 != 3))
-                        ec0 <= ec0 + 1;
-                    if ((old[1] != new[1]) && (ec1 != 3))
-                        ec1 <= ec1 + 1;
-                    if ((old[2] != new[2]) && (ec2 != 3))
-                        ec2 <= ec2 + 1;
-                    if ((old[3] != new[3]) && (ec3 != 3))
-                        ec3 <= ec3 + 1;
-                    state <= 1;         // start collecting transition data
-                    edgcount <= edgcount + 1;
-                end
-            end
-            else if (state == 1)  // collecting transitions on the inputs
-            begin
-                main <= main + 1;
-                if (main == 16'hffff)
-                    state <= 2;
+                edgcount <= edgcount + 4'h1;
+                main <= 16'h0000;
 
-                else if ((old ^ new) != 0)
-                begin
-                    if ((old[0] != new[0]) && (ec0 != 3))
-                        ec0 <= ec0 + 1;
-                    if ((old[1] != new[1]) && (ec1 != 3))
-                        ec1 <= ec1 + 1;
-                    if ((old[2] != new[2]) && (ec2 != 3))
-                        ec2 <= ec2 + 1;
-                    if ((old[3] != new[3]) && (ec3 != 3))
-                        ec3 <= ec3 + 1;
-                    // increment to next transition if there are any valid transitions
-                    if (((old[0] != new[0]) && (ec0 != 3)) ||
-                        ((old[1] != new[1]) && (ec1 != 3)) ||
-                        ((old[2] != new[2]) && (ec2 != 3)) ||
-                        ((old[3] != new[3]) && (ec3 != 3)))
-                    begin
-                        edgcount <= edgcount + 1;
-                        main <= 0;
-                        if (11 == ec0 + ec1 + ec2 + ec3)  // doing 12th measurement?
-                            state <= 2;      // Done. Send results to host.
-                    end
-                end
+                // count edges per input line
+                if ((old[3] != new[3]) && (ec3 != 2'h3))
+                    ec3 <= ec3 + 2'h1;
+                if ((old[2] != new[2]) && (ec2 != 2'h3))
+                    ec2 <= ec2 + 2'h1;
+                if ((old[1] != new[1]) && (ec1 != 2'h3))
+                    ec1 <= ec1 + 2'h1;
+                if ((old[0] != new[0]) && (ec0 != 2'h3))
+                    ec0 <= ec0 + 2'h1;
             end
-            // if (state == 2)  // Do nothing.  We are just waiting for a host read
+            else if ((ec0 == 2'h3) && (ec1 == 2'h3) && (ec2 == 2'h3) && (ec3 ==2'h3))
+            begin
+                state <= `STDATREADY;  // data ready for host
+            end
+            else
+            begin
+                main <= main + 16'h0001;
+                if (main == 16'hffff)
+                    state <= `STDATREADY;  // data ready for host on timeout
+            end
         end
+        if ((state == `STDATREADY) && (pollevt))
+            state <= `STHOSTSEND;
     end
 
 
     // Assign the outputs.
-    assign mywrite = (strobe && myaddr && ~rdwr); // latch data on a write
-    assign ramwen  = ((state != 2) && (((old[0] != new[0]) && (ec0 != 3)) ||
-                                       ((old[1] != new[1]) && (ec1 != 3)) ||
-                                       ((old[2] != new[2]) && (ec2 != 3)) ||
-                                       ((old[3] != new[3]) && (ec3 != 3))));
+    // enable ram only in state STSAMPLING and on valid changing edge.
+    assign ramwen  = ((state == `STSAMPLING) && (sampleclock) && (validedge));
     assign raddr = (strobe & myaddr) ? addr[5:2] : edgcount ;
-    assign myaddr = (addr[15:8] == our_addr) && (addr[6] == 0);
+    assign myaddr = (addr[11:8] == our_addr);
     assign datout = (~myaddr) ? datin :
-                    (~strobe && myaddr && (state == 2)) ? 16'h4719 :
-                    (strobe && (addr[5:0] == 48)) ? {8'h0,edgcount,freq} :
-                    (strobe && (addr[1] == 0)) ? {douth,doutl} : 
-                    (strobe && (addr[1] == 1)) ? {12'h000,ramedge} : 
-                    0 ; 
+                    (~strobe && (state == `STHOSTSEND)) ? 8'h31 :
+                    (strobe && (addr[5:0] == 6'd48)) ? {edgcount,freq} :
+                    (strobe && (addr[1:0] == 2'b00)) ? douth : 
+                    (strobe && (addr[1:0] == 2'b01)) ? doutl : 
+                    (strobe && (addr[1:0] == 2'b10)) ? {first,ramedge} : 
+                    8'h0 ; 
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;

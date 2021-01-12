@@ -53,6 +53,7 @@ int stepu(int, int, char *);
 int stepb(int, int, char *);
 int dc2(int, int, char *);
 int pgen16(int, int, char *);
+int pwmin4(int, int, char *);
 int quad2(int, int, char *);
 int qtr4(int, int, char *);
 int qtr8(int, int, char *);
@@ -102,6 +103,7 @@ struct ENUMERATORS enumerators[] = {
     {"aamp", "out4", "aamp", out4 },
     {"pgen16", "pgen16", "pgen16", pgen16 },
     {"pwmout4", "pgen16", "pwmout4", pgen16 },
+    {"pwmin4", "pwmin4", "pwmin4", pwmin4 },
     {"quad2", "quad2", "quad2", quad2 },
     {"qtr4", "qtr4", "qtr4", qtr4 },
     {"qtr8", "qtr8", "qtr8", qtr8 },
@@ -354,9 +356,9 @@ int pgen16(int addr, int startpin, char * peri)
 {
     fprintf(stdout,"\n    wire [3:0] p%02dpattern;", addr);
     printbus(addr, "pgen16");
-    fprintf(stdout, "        p%02dm100clk,p%02dm10clk,p%02dm1clk,",addr,addr,addr);
-    fprintf(stdout, "        p%02du100clk,p%02du10clk,p%02du1clk,p%02dn100clk,",addr,addr,addr,addr);
-    fprintf(stdout, "        p%02dpattern);\n", addr);
+    fprintf(stdout, "    p%02dm100clk,p%02dm10clk,p%02dm1clk,",addr,addr,addr);
+    fprintf(stdout, "    p%02du100clk,p%02du10clk,p%02du1clk,p%02dn100clk,",addr,addr,addr,addr);
+    fprintf(stdout, "    p%02dpattern);\n", addr);
     fprintf(stdout, "    assign p%02dm100clk = bc0m100clk;\n", addr);
 		fprintf(stdout, "    assign p%02dm10clk = bc0m10clk;\n", addr);
     fprintf(stdout, "    assign p%02dm1clk = bc0m1clk;\n", addr);
@@ -368,6 +370,29 @@ int pgen16(int addr, int startpin, char * peri)
     fprintf(stdout, "    assign `PIN_%02d = p%02dpattern[1];\n", startpin+1, addr);
     fprintf(stdout, "    assign `PIN_%02d = p%02dpattern[2];\n", startpin+2, addr);
     fprintf(stdout, "    assign `PIN_%02d = p%02dpattern[3];\n", startpin+3, addr);
+    return(startpin +4);
+}
+
+
+int pwmin4(int addr, int startpin, char * peri)
+{
+    fprintf(stdout,"\n    wire [3:0] p%02dpwm;", addr);
+    printbus(addr, "pwmin4");
+    fprintf(stdout, "    p%02dpollevt,p%02dm100clk,p%02dm10clk,p%02dm1clk,",addr,addr,addr,addr);
+    fprintf(stdout, "    p%02du100clk,p%02du10clk,p%02du1clk,p%02dn100clk,",addr,addr,addr,addr);
+    fprintf(stdout, "    p%02dpwm);\n", addr);
+    fprintf(stdout, "    assign p%02dpollevt = bc0pollevt;\n", addr);
+    fprintf(stdout, "    assign p%02dm100clk = bc0m100clk;\n", addr);
+    fprintf(stdout, "    assign p%02dm10clk = bc0m10clk;\n", addr);
+    fprintf(stdout, "    assign p%02dm1clk = bc0m1clk;\n", addr);
+    fprintf(stdout, "    assign p%02du100clk = bc0u100clk;\n", addr);
+    fprintf(stdout, "    assign p%02du10clk = bc0u10clk;\n", addr);
+    fprintf(stdout, "    assign p%02du1clk = bc0u1clk;\n", addr);
+    fprintf(stdout, "    assign p%02dn100clk = bc0n100clk;\n", addr);
+    fprintf(stdout, "    assign p%02dpwm[0] = `PIN_%02d;\n", addr, startpin);
+    fprintf(stdout, "    assign p%02dpwm[1] = `PIN_%02d;\n", addr, startpin+1);
+    fprintf(stdout, "    assign p%02dpwm[2] = `PIN_%02d;\n", addr, startpin+2);
+    fprintf(stdout, "    assign p%02dpwm[3] = `PIN_%02d;\n", addr, startpin+3);
     return(startpin +4);
 }
 
