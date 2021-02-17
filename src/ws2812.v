@@ -33,8 +33,8 @@
 //
 //  Accept up to 256 bytes from the host and shift each bit out
 //  using the timing defined for the World Semi ws2812 RGB(W) LED.
-//  A zero bit is high for 300 ns and low for 700.  A one bit is
-//  high for 700 ns and low for 300.
+//  A zero bit is high for 350 ns and low for 800.  A one bit is
+//  high for 700 ns and low for 600.
 //
 //  Because of the large amount of data and the fairly high
 //  output frequency the circuit uses the busy line to apply
@@ -82,10 +82,10 @@ module ws2812(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,addr_match_in,
     wire   inxfer;           // doing a transfer
 
     `define ADDRCONFIG (4)
-    assign targetwidth = (~wsdata[7] & outstate) ?  4'h6 : // 300 ns (6) for high part of a zero bit
-                         (~wsdata[7] & ~outstate) ? 4'he : // 700 ns (14) for low part of a zero bit
-                         (wsdata[7] & outstate) ?   4'he : // 700 ns (14) for high part of a one bit
-                                                    4'h6;  // 300 ns (6) for low part of a one bit
+    assign targetwidth = (~wsdata[7] & outstate) ?  4'h6 : // 350 ns (6) for high part of a zero bit
+                         (~wsdata[7] & ~outstate) ? 4'hf : // 800 ns (14) for low part of a zero bit
+                         (wsdata[7] & outstate) ?   4'hd : // 700 ns (14) for high part of a one bit
+                                                    4'hb;  // 600 ns (6) for low part of a one bit
 
     initial
     begin
