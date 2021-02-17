@@ -67,6 +67,8 @@ int espi(int, int, char *);
 int adc12(int, int, char *);
 int out4(int, int, char *);
 int out4l(int, int, char *);
+int serout4(int, int, char *);
+int serout8(int, int, char *);
 int gpio4(int, int, char *);
 int out32(int, int, char *);
 int lcd6(int, int, char *);
@@ -121,6 +123,8 @@ struct ENUMERATORS enumerators[] = {
     {"slide4", "adc12", "slide4", adc12 },
     {"out4", "out4", "out4", out4 },
     {"out4l", "out4l", "out4l", out4l },
+    {"serout4", "serout", "serout4", serout4 },
+    {"serout8", "serout", "serout8", serout8 },
     {"ws2812", "ws2812", "ws2812", ws2812 },
     {"rly4", "out4l", "rly4", out4l },
     {"drv4", "out4", "drv3", out4 },
@@ -143,7 +147,7 @@ struct ENUMERATORS enumerators[] = {
 #define NPERI (sizeof(enumerators) / sizeof(struct ENUMERATORS))
 #define ENUMROMSZ 2048
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     FILE *pdescfile;        // The description file
     FILE *pincludes;        // The includes file that drives compilation
@@ -631,6 +635,38 @@ int out4l(int addr, int pin, char * peri)
     fprintf(stdout, "    assign `PIN_%02d = p%02dbitout[2];\n", pin+2, addr);
     fprintf(stdout, "    assign `PIN_%02d = p%02dbitout[3];\n", pin+3, addr);
     return(pin +4);
+}
+
+
+int serout4(int addr, int pin, char * peri)
+{
+    fprintf(stdout,"\n    wire [3:0] p%02dtxd;", addr);
+    printbus(addr, "serout #(.NPORT(4), .LOGNPORT(2))");
+    fprintf(stdout, "    p%02du1clk,p%02dtxd);\n", addr,addr);
+    fprintf(stdout, "    assign p%02du1clk = bc0u1clk;\n", addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[0];\n", pin, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[1];\n", pin+1, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[2];\n", pin+2, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[3];\n", pin+3, addr);
+    return(pin +4);
+}
+
+
+int serout8(int addr, int pin, char * peri)
+{
+    fprintf(stdout,"\n    wire [7:0] p%02dtxd;", addr);
+    printbus(addr, "serout #(.NPORT(8), .LOGNPORT(3))");
+    fprintf(stdout, "    p%02du1clk,p%02dtxd);\n", addr,addr);
+    fprintf(stdout, "    assign p%02du1clk = bc0u1clk;\n", addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[0];\n", pin, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[1];\n", pin+1, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[2];\n", pin+2, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[3];\n", pin+3, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[4];\n", pin+4, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[5];\n", pin+5, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[6];\n", pin+6, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[7];\n", pin+7, addr);
+    return(pin +8);
 }
 
 
