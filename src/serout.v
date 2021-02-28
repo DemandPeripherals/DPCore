@@ -16,8 +16,8 @@
 // a counter (rdsel) that sequentially gives two sysclk cycles to
 // each  port.  The RAM read address is set in the first cycle and
 // the character to send is read from RAM in the second cycle.  This
-// counter has 3/4 bits -- two/three for the port and 1 for the
-// addr/read cycle.
+// counter has 3 or 4 bits depending the number if ports.  Two (or
+// three) bits are for the port and one bit is for the addr/read cycle.
 //
 /////////////////////////////////////////////////////////////////////////
 
@@ -62,8 +62,6 @@ module serout(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     reg    [LOGNPORT:0] rdsel;      // read select line
     reg    [`LB2BUFSZ-1:0] watx [NPORT-1:0]; // FIFO write address for Tx
     reg    [`LB2BUFSZ-1:0] ratx [NPORT-1:0]; // FIFO read address for Tx
-wire [`LB2BUFSZ-1:0] ratx0; assign ratx0 = ratx[0];
-wire [`LB2BUFSZ-1:0] watx0; assign watx0 = watx[0];
     wire   [NPORT-1:0] buffull;    // ==1 if FIFO can not take more characters
     wire   [NPORT-1:0] bufempty;   // ==1 if there are no characters to send
     for (i = 0; i < NPORT; i=i+1)
@@ -198,7 +196,7 @@ wire [`LB2BUFSZ-1:0] watx0; assign watx0 = watx[0];
 
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:LOGNPORT+1] == 5'h00);
     assign datout = (~myaddr) ? datin : 
-                     (strobe && (addr[LOGNPORT:0] == NPORT)) ? {4'h0,bauddiv} : 1'b0;
+                     (strobe && (addr[LOGNPORT:0] == NPORT)) ? {4'h0,bauddiv} : 8'h00;
 
     // Loop in-to-out where appropriate
     assign busy_out = busy_in;
@@ -287,7 +285,7 @@ endmodule
 
 
 //
-// Dual-Port RAM with Asynchronous Read
+// Dual-Port RAM with synchronous Read
 //
 module
 dpram(clk,we,wa,wd,ra,rd);
