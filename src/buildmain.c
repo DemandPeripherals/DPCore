@@ -69,6 +69,7 @@ int out4(int, int, char *);
 int out4l(int, int, char *);
 int serout4(int, int, char *);
 int serout8(int, int, char *);
+int hostserial(int, int, char *);
 int gpio4(int, int, char *);
 int out32(int, int, char *);
 int lcd6(int, int, char *);
@@ -125,6 +126,7 @@ struct ENUMERATORS enumerators[] = {
     {"out4l", "out4l", "out4l", out4l },
     {"serout4", "serout", "serout4", serout4 },
     {"serout8", "serout", "serout8", serout8 },
+    {"hostserial", "hostserial", "hostserial", hostserial },
     {"ws2812", "ws2812", "ws2812", ws2812 },
     {"rly4", "out4l", "rly4", out4l },
     {"drv4", "out4", "drv3", out4 },
@@ -667,6 +669,24 @@ int serout8(int addr, int pin, char * peri)
     fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[6];\n", pin+6, addr);
     fprintf(stdout, "    assign `PIN_%02d = p%02dtxd[7];\n", pin+7, addr);
     return(pin +8);
+}
+
+
+int hostserial(int addr, int pin, char * peri)
+{
+    fprintf(stdout,"\n    wire p%02dtxd;", addr);
+    fprintf(stdout,"\n    wire p%02drxd;", addr);
+    fprintf(stdout,"\n    wire p%02dspare1;", addr);
+    fprintf(stdout,"\n    wire p%02dspare2;", addr);
+    printbus(addr, "hostserial");
+    fprintf(stdout, "    p%02dtxd,p%02drxd,", addr,addr);
+    fprintf(stdout, "    p%02dspare1,p%02dspare2,\n", addr,addr);
+    fprintf(stdout, "    sec_enabled,rxbyteout,ready_,ack_,txdstrobe,nomore,dattxd);\n");
+    fprintf(stdout, "    assign `PIN_%02d = p%02dtxd;\n", pin, addr);
+    fprintf(stdout, "    assign p%02drxd = `PIN_%02d;\n", addr, pin+1);
+    fprintf(stdout, "    assign p%02dspare1 = `PIN_%02d;\n", addr, pin+2);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dspare2;\n", pin+3, addr);
+    return(pin +4);
 }
 
 

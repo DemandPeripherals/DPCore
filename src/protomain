@@ -86,6 +86,15 @@ module DPcore(CK50, CK12, BNTN1, BNTN2, BNTN3, LED, RXF_, RD_, TXE_,
     wire ft0ifwr;             // active negative edge write signal
     wire [15:0] ft0debug0;
 
+    // Secondary host interface does not need peripheral addressing
+    wire sec_enabled;         // set if the secondary interface is enabled
+    wire [7:0] rxbyteout;     // data byte into the FPGA bus interface
+    wire ready_;              // data ready strobe to the FPGA bus interface
+    wire ack_;                // the bus interface acknowledges the new byte
+    wire txdstrobe;           // pulse to write data to txd output buffer
+    wire buffull;             // ==1 if output FIFO can not take more characters
+    wire [7:0] dattxd;        // Data into the txd FIFO
+
     // Define the wires to SLIP encoder #0
     wire sl0clk;              // system clock
     wire [7:0] sl0fthfdata;   // Data in from the FT245
@@ -293,11 +302,16 @@ module DPcore(CK50, CK12, BNTN1, BNTN2, BNTN3, LED, RXF_, RD_, TXE_,
     assign RD_ = ft0phyrd_; 
     assign WR = ft0phywr;
 
+    // Secondary (serial) host interface
+    assign ack_ = sl0fthfrd_;         // SLIP decoder acks byte from host
+    assign dattxd = sl0ftfhdata;      // Data into the txd FIFO
+    assign txdstrobe = sl0ftfhwr;     // pulse to write data to txd output FIFO
+
     // SLIP encoder/decoder sits between the USB and the bus interface
     assign sl0clk = bc0clk_out;
-    assign sl0fthfdata = ft0ifdatout;
-    assign sl0fthfrxf_ = ft0ifrxf_;
-    assign sl0ftfhtxe_ = ft0iftxe_;
+    assign sl0fthfdata = (sec_enabled) ? rxbyteout : ft0ifdatout;
+    assign sl0fthfrxf_ = (sec_enabled) ? ready_ : ft0ifrxf_;
+    assign sl0ftfhtxe_ = (sec_enabled) ? buffull : ft0iftxe_;
     assign sl0bifhdata = bi0phydatout;
     assign sl0bifhwr = bi0phywr;
     assign sl0bifhpkt = bi0pkt_out;
