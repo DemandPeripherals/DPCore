@@ -59,7 +59,7 @@ module servo4(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     output addr_match_out;   // ==1 if we claim the above address, pass through otherwise
     input  [7:0] datin ;     // Data INto the peripheral;
     output [7:0] datout ;    // Data OUTput from the peripheral, = datin if not us.
-    inout  [3:0] servo;      // Simple Bidirectional I/O 
+    output [3:0] servo;      // Four servo outputs
  
     wire   myaddr;           // ==1 if a correct read/write on our address
     wire   [7:0] doutl;      // RAM output lines
