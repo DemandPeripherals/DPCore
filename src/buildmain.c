@@ -48,6 +48,7 @@
 // Note that these are the "real" peripherals as defined in the FPGA.
 int perilist(int, int, char *);
 int bb4io(int, int, char *);
+int pulse2(int, int, char *);
 int servo4(int, int, char *);
 int stepu(int, int, char *);
 int stepb(int, int, char *);
@@ -99,6 +100,7 @@ struct ENUMERATORS enumerators[] = {
     // or, if you will, the table of .so files.
     {"enumerator","enumerator", "enumerator", perilist },
     {"bb4io", "bb4io", "bb4io", bb4io },
+    {"pulse2", "pulse2", "pulse2", pulse2 },
     {"servo4", "servo4", "servo4", servo4 },
     {"stepu", "stepu", "stepu", stepu },
     {"stepb", "stepb", "stepb", stepb },
@@ -483,6 +485,23 @@ int count4(int addr, int startpin, char * peri)
     fprintf(stdout, "    assign p%02dc = `PIN_%02d;\n", addr, startpin+2);
     fprintf(stdout, "    assign p%02dd = `PIN_%02d;\n", addr, startpin+3);
     return(startpin +4);
+}
+
+
+int pulse2(int addr, int pin, char * peri)
+{
+    fprintf(stdout,"\n    wire p%02dp1p;", addr);
+    fprintf(stdout,"\n    wire p%02dp1n;", addr);
+    fprintf(stdout,"\n    wire p%02dp2p;", addr);
+    fprintf(stdout,"\n    wire p%02dp2n;", addr);
+    printbus(addr, peri);
+    fprintf(stdout, "        p%02dp1p,p%02dp1n,p%02dp2p,p%02dp2n);\n",
+                     addr,addr,addr,addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dp1p;\n", pin, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dp1n;\n", pin+1, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dp2p;\n", pin+2, addr);
+    fprintf(stdout, "    assign `PIN_%02d = p%02dp2n;\n", pin+3, addr);
+    return(pin +4);
 }
 
 
