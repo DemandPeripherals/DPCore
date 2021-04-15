@@ -71,10 +71,11 @@
 /////////////////////////////////////////////////////////////////////////
 //
 //  SPI states and configuration definitions.
-`define IDLE         2'h0
-`define GETBYTE      2'h1
-`define SNDBYTE      2'h2
-`define SNDRPLY      2'h3
+`define IDLE         3'h0
+`define GETBYTE      3'h1
+`define LOWBYTE      3'h2
+`define SNDBYTE      3'h3
+`define SNDRPLY      3'h4
 `define CS_MODE_AL   2'h0   // Active low chip select
 `define CS_MODE_AH   2'h1   // Active high chip select
 `define CS_MODE_FL   2'h2   // Forced low chip select

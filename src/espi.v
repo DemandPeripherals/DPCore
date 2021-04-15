@@ -1,5 +1,5 @@
 // *********************************************************
-// Copyright (c) 2020 Demand Peripherals, Inc.
+// Copyright (c) 2021 Demand Peripherals, Inc.
 // 
 // This file is licensed separately for private and commercial
 // use.  See LICENSE.txt which should have accompanied this file
@@ -34,19 +34,10 @@
 //  Registers are
 //    Addr=0    Clock select, chip select control, interrupt control and
 //              SPI mode register
-//    Addr=1    Max addr of packet data (== SPI pkt sz + 1)
-//    Addr=1    Data byte #1 in/out
-//    Addr=2    Data byte #2 in/out
-//    Addr=3    Data byte #3 in/out
-//    Addr=4    Data byte #4 in/out
-//    Addr=5    Data byte #5 in/out
-//    Addr=6    Data byte #6 in/out
+//    Addr=1    FIFO: Size of packet as the first byte followed
+//              all the data bytes
 //
 //  NOTES: 
-//   - The RAM addresses are numbered from zero and the first two locations
-//     are mirrors of the two config registers.  Thus the actual SPI packet
-//     data starts at addr=2 and goes up to (SPI_pkt_sz + 1).  Note that CS
-//     is asserted for one full byte time before SCLK starts.
 //   - The ribbon cables connecting daughter cards to the FPGA card will
 //     have ringing on them.  This would be disastrous if tied directly
 //     to the SCLK line.  To work around this we add a circuit on each espi
@@ -64,23 +55,27 @@
 /////////////////////////////////////////////////////////////////////////
 
 // Copied from sysdefs.h
-// define IDLE         2'h0
-// define GETBYTE      2'h1
-// define SNDBYTE      2'h2
-// define SNDRPLY      2'h3
-// define CS_MODE_AL   2'h0   // Active low chip select
-// define CS_MODE_AH   2'h1   // Active high chip select
-// define CS_MODE_FL   2'h2   // Forced low chip select
-// define CS_MODE_FH   2'h3   // Forced high chip select
-// define CLK_2M       2'h0   // 2 MHz
-// define CLK_1M       2'h1   // 1 MHz
-// define CLK_500K     2'h2   // 500 KHz
-// define CLK_100K     2'h3   // 100 KHz
+//  SPI states and configuration definitions.
+//`define IDLE         3'h0
+//`define GETBYTE      3'h1
+//`define LOWBYTE      3'h2
+//`define SNDBYTE      3'h3
+//`define SNDRPLY      3'h4
+//`define CS_MODE_AL   2'h0   // Active low chip select
+//`define CS_MODE_AH   2'h1   // Active high chip select
+//`define CS_MODE_FL   2'h2   // Forced low chip select
+//`define CS_MODE_FH   2'h3   // Forced high chip select
+//`define CLK_2M       2'h0   // 2 MHz
+//`define CLK_1M       2'h1   // 1 MHz
+//`define CLK_500K     2'h2   // 500 KHz
+//`define CLK_100K     2'h3   // 100 KHz
 
 
 module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
        addr_match_in,addr_match_out,datin,datout,u100clk,
        u10clk,u1clk,n100clk,mosi,a,b,miso);
+    localparam LGMXPKT = 5;  // Log of maximum pkt size
+    localparam MXPKT = (LGMXPKT ** 2);   // Maximum pkt size (= our buffer size)
     input  clk;              // system clock
     input  rdwr;             // direction of this transfer. Read=1; Write=0
     input  strobe;           // true on full valid command
@@ -103,7 +98,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
  
     wire   myaddr;           // ==1 if a correct read/write on our address
     wire   [7:0] dout;       // RAM output lines
-    wire   [3:0] raddr;      // RAM address lines
+    wire   [LGMXPKT-1:0] raddr;      // RAM address lines
     wire   [7:0] din;        // RAM input lines
     wire   wclk;             // RAM write clock
     wire   wen;              // RAM write enable
@@ -111,12 +106,12 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     wire   rawcs;            // CS from the user
     reg    [1:0] clksrc;     // SCK clock frequency (2,1,.5,.1 MHz)
     reg    [1:0] csmode;     // Chip select mode of operation
-    reg    [3:0] mxaddr;     // Number of bytes in the SPI pkt +1  (or RAM addr 0-to-(N-1))
+    reg    [LGMXPKT:0] sndcnt;     // Number of bytes in the SPI pkt 
     reg    meta;             // Used to bring miso into our clock domain
     reg    [1:0] clkpre;     // clock prescaler
     reg    [2:0] clkdiv;     // clock state divider
-    reg    [1:0] state;      // idle, getting bytes, sending bytes, sending response
-    reg    [3:0] bytcnt;     // counter for getting and sending bytes
+    reg    [2:0] state;      // idle, getting bytes, lowbyte, sending bytes, sending response
+    reg    [LGMXPKT:0] bytcnt;     // counter for getting and sending bytes
     reg    [3:0] bitcnt;     // bit counter for shift register
     reg    int_en;           // Interrupt enable. 1==enabled
     reg    int_pol;          // Interrupt polarity, 1==int pending if MISO is high while CS=0
@@ -127,7 +122,13 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         clksrc = 0;
         csmode = 0;
         state = `IDLE;
+        sndcnt = 0;
+        meta = 0;
+        clkpre = 0;
         clkdiv[2:0] = 0;
+        state = 0;
+        bytcnt = 0;
+        bitcnt = 0;
         int_en = 0;
         int_pol = 0;
         int_pend = 0;
@@ -135,7 +136,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 
 
     // Register array in RAM
-    espiram16x8 spipkt(dout,raddr,din,wclk,wen);
+    spiram16x8 #(.LGDEPTH(LGMXPKT)) spipkt(dout,raddr,din,wclk,wen);
 
     // Generate the state machine clock for the ESPI interface
     assign smclk = (clksrc[1:0] == `CLK_2M)   ? (clkpre[0]) :
@@ -167,7 +168,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
         // Handle write and read requests from the host
         if (strobe & myaddr & ~rdwr)  // latch data on a write
         begin
-            if (addr[3:0] == 0)
+            if (addr[LGMXPKT-1:0] == 0)         // a config write
             begin
                 clksrc <= datin[7:6];
                 int_en <= datin[5];
@@ -175,41 +176,66 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 csmode <= datin[3:2];
                 state <= `IDLE;
             end
-            else if (addr[3:0] == 1)
+            else if (addr[LGMXPKT-1:0] == 1)    // a fifo write 
             begin
-                mxaddr <= datin[3:0];
-                bytcnt <= 2;
-                state <= `GETBYTE;
-            end
-            else
-            begin    // Getting bytes from the host.  Send SPI pkt when done
-                bytcnt <= bytcnt + 4'h1;
-                if (bytcnt == mxaddr)
+                // state will be IDLE on the first byte into the fifo.  This
+                // is the size of the packet to send
+                if (state == `IDLE)
                 begin
-                    state <= `SNDBYTE;
-                    bytcnt <= 1;
-                    bitcnt <= 0;
+                    sndcnt <= datin[LGMXPKT:0];
+                    bytcnt <= 0;
+                    state <= `GETBYTE;
+                end
+                else
+                begin
+                    // Getting bytes from the host.  Send SPI pkt when done
+                    if ((bytcnt + 1) == sndcnt)
+                    begin
+                        state <= `LOWBYTE;
+                        bitcnt <= 0;
+                    end
+                    else
+                    begin
+                        bytcnt <= bytcnt + 1;
+                    end
                 end
             end
         end
-        else if (strobe & myaddr & (state == `SNDRPLY))  // back to idle after the reply pkt read
+        else if (strobe & myaddr )  // back to idle after the reply pkt read
         begin
+            // Auto send reads from consecutive locations starting at zero.
+            // There is no autosend fifo read.  We spoof this by ignoring the
+            // address requested and responding with the ram data at location
+            // ram[bytcnt].
             state <= `IDLE;
-            bytcnt <= 0;
+            bytcnt <= bytcnt + 1;
         end
 
         // Do the state machine to shift in/out the SPI data if sending and on clk edge
-        else if (smclk  & (state == `SNDBYTE))
+        else if (smclk  && ((state == `SNDBYTE) || (state == `LOWBYTE)))
         begin
              if (clkdiv[2:0] == 2)
              begin
                 if (bitcnt == 9)
                 begin
                     bitcnt <= 0;
-                    bytcnt <= bytcnt + 4'h1;
-                    if (bytcnt == mxaddr)
+                    // Low byte is a one-byte period just after CS goes low to give the
+                    // target device a chance to come out of reset.  Just one byte period
+                    // so we immediately go into SNDBYTE
+                    if (state == `LOWBYTE)
                     begin
-                        state <= `SNDRPLY;
+                        state <= `SNDBYTE;
+                        bytcnt <= 0;
+                    end
+                    else
+                    begin
+                        if ((bytcnt +1) == sndcnt)
+                        begin
+                            state <= `SNDRPLY;
+                            bytcnt <= 0;    // reset to start for the autosend read
+                        end
+                        else
+                            bytcnt <= bytcnt + 1;
                     end
                 end
                 else
@@ -233,26 +259,26 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 
 
     // Assign the outputs.
-    assign rawcs = (csmode == `CS_MODE_AL) ? ~(state == `SNDBYTE) :
-                   (csmode == `CS_MODE_AH) ? (state == `SNDBYTE) :
+    assign rawcs = (csmode == `CS_MODE_AL) ? ~((state == `SNDBYTE) | (state == `LOWBYTE)) :
+                   (csmode == `CS_MODE_AH) ? ((state == `SNDBYTE) | (state == `LOWBYTE)) :
                    (csmode == `CS_MODE_FH) ? 1'b1 : 1'b0;
-    assign a = (state == `SNDBYTE) & (bytcnt > 1) & (bitcnt < 8) & (clkdiv[2:0] == 0);
+    assign a = (state == `SNDBYTE) & (bitcnt < 8) & (clkdiv[2:0] == 0);
     assign b = ~(clkdiv[2:0] == 2);
     assign mosi = ((clkdiv[2:0] > 0) & (clkdiv[2:0] < 4)) ? rawcs :
-                          ((dout[0] & (bitcnt == 7)) |
-                           (dout[1] & (bitcnt == 6)) |
-                           (dout[2] & (bitcnt == 5)) |
-                           (dout[3] & (bitcnt == 4)) |
-                           (dout[4] & (bitcnt == 3)) |
-                           (dout[5] & (bitcnt == 2)) |
-                           (dout[6] & (bitcnt == 1)) |
-                           (dout[7] & (bitcnt == 0))) ;
+                   ((dout[0] & (bitcnt == 7)) |
+                   (dout[1] & (bitcnt == 6)) |
+                   (dout[2] & (bitcnt == 5)) |
+                   (dout[3] & (bitcnt == 4)) |
+                   (dout[4] & (bitcnt == 3)) |
+                   (dout[5] & (bitcnt == 2)) |
+                   (dout[6] & (bitcnt == 1)) |
+                   (dout[7] & (bitcnt == 0))) ;
 
 
     // Assign the RAM control lines
     assign wclk  = clk;
-    assign wen   = (state != `SNDBYTE) ? (strobe & myaddr & ~rdwr) :
-                   ((bitcnt < 8) & (clkdiv[2:0] == 1)) ;
+    assign wen   = (state == `GETBYTE) ? (strobe & myaddr & ~rdwr) :
+                   ((state ==`SNDBYTE) & (bitcnt < 8) & (clkdiv[2:0] == 2)) ;
     assign din[0] = (state != `SNDBYTE) ? datin[0] : (bitcnt == 7) ? meta : dout[0];
     assign din[1] = (state != `SNDBYTE) ? datin[1] : (bitcnt == 6) ? meta : dout[1];
     assign din[2] = (state != `SNDBYTE) ? datin[2] : (bitcnt == 5) ? meta : dout[2];
@@ -261,12 +287,12 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     assign din[5] = (state != `SNDBYTE) ? datin[5] : (bitcnt == 2) ? meta : dout[5];
     assign din[6] = (state != `SNDBYTE) ? datin[6] : (bitcnt == 1) ? meta : dout[6];
     assign din[7] = (state != `SNDBYTE) ? datin[7] : (bitcnt == 0) ? meta : dout[7];
-    assign raddr = (state == `SNDBYTE) ? bytcnt[3:0] : addr[3:0];
+    assign raddr = bytcnt[LGMXPKT-1:0];
 
     // Assign the bus control lines
-    assign myaddr = (addr[11:8] == our_addr) && (addr[7:4] == 0);
+    assign myaddr = (addr[11:8] == our_addr) && (addr[7:LGMXPKT] == 0);
     assign datout = (~myaddr) ? datin :
-                    (~strobe & (state == `SNDRPLY)) ? 8'h10 :  // all replies have 16 bytes
+                    (~strobe & (state == `SNDRPLY)) ? sndcnt :
                     // send one byte if device is requesting service/interrupt
                     (~strobe & (state ==`IDLE) & (miso == int_pol) & (int_en) & (~int_pend)) ? 8'h01 :
                     (strobe) ? dout :
@@ -277,37 +303,26 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
 endmodule
 
 
-module espiram16x8(dout,addr,din,wclk,wen);
-   output [7:0] dout;
-   input  [3:0] addr;
-   input  [7:0] din;
-   input  wclk;
-   input  wen;
+module spiram16x8(dout,addr,din,wclk,wen);
+    parameter LGDEPTH = 4;  // log of the size of the largest packet
+    output [7:0] dout;
+    input  [LGDEPTH-1:0] addr;
+    input  [7:0] din;
+    input  wclk;
+    input  wen;
 
-   // RAM16X8S: 16 x 8 posedge write distributed (LUT) RAM
-   //           Virtex-II/II-Pro
-   // Xilinx HDL Language Template, version 10.1
 
-   RAM16X8S #(
-      .INIT_00(16'h0000), // INIT for bit 0 of RAM
-      .INIT_01(16'h0000), // INIT for bit 1 of RAM
-      .INIT_02(16'h0000), // INIT for bit 2 of RAM
-      .INIT_03(16'h0000), // INIT for bit 3 of RAM
-      .INIT_04(16'h0000), // INIT for bit 4 of RAM
-      .INIT_05(16'h0000), // INIT for bit 5 of RAM
-      .INIT_06(16'h0000), // INIT for bit 6 of RAM
-      .INIT_07(16'h0000)  // INIT for bit 7 of RAM
-   ) RAM16X8S_inst (
-      .O(dout),           // 8-bit RAM data output
-      .A0(addr[0]),       // RAM address[0] input
-      .A1(addr[1]),       // RAM address[1] input
-      .A2(addr[2]),       // RAM address[2] input
-      .A3(addr[3]),       // RAM address[3] input
-      .D(din),            // 8-bit RAM data input
-      .WCLK(wclk),        // Write clock input
-      .WE(wen)            // Write enable input
-   );
+    reg      [7:0] ram [(LGDEPTH ** 2)-1:0];
 
-   // End of RAM16X8S_inst instantiation
+    always@(posedge wclk)
+    begin
+        if (wen)
+            ram[addr] <= din;
+    end
+
+    assign dout = ram[addr];
 
 endmodule
+
+
+
