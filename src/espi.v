@@ -74,7 +74,7 @@
 module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
        addr_match_in,addr_match_out,datin,datout,u100clk,
        u10clk,u1clk,n100clk,mosi,a,b,miso);
-    localparam LGMXPKT = 5;  // Log of maximum pkt size
+    localparam LGMXPKT = 4;  // Log of maximum pkt size
     localparam MXPKT = (LGMXPKT ** 2);   // Maximum pkt size (= our buffer size)
     input  clk;              // system clock
     input  rdwr;             // direction of this transfer. Read=1; Write=0
@@ -278,7 +278,7 @@ module espi(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     // Assign the RAM control lines
     assign wclk  = clk;
     assign wen   = (state == `GETBYTE) ? (strobe & myaddr & ~rdwr) :
-                   ((state ==`SNDBYTE) & (bitcnt < 8) & (clkdiv[2:0] == 2)) ;
+                   ((state ==`SNDBYTE) & (bitcnt < 8) & (clkdiv[2:0] == 1)) ;
     assign din[0] = (state != `SNDBYTE) ? datin[0] : (bitcnt == 7) ? meta : dout[0];
     assign din[1] = (state != `SNDBYTE) ? datin[1] : (bitcnt == 6) ? meta : dout[1];
     assign din[2] = (state != `SNDBYTE) ? datin[2] : (bitcnt == 5) ? meta : dout[2];
