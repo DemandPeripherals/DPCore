@@ -117,7 +117,7 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                 differ <= datin[7:0];
             end
         end
-        else if (strobe & myaddr & (state == `SNDRPLY))  // back to idle after the reply pkt read
+        else if (strobe & myaddr & (state == `ADCSNDRPLY))  // back to idle after the reply pkt read
         begin
             state <= `ADCIDLE;
         end
@@ -154,7 +154,7 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
                         smplinx <= smplinx + 3'h1;
                     else
                     begin
-                        state <= `SNDRPLY;
+                        state <= `ADCSNDRPLY;
                     end
                 end
             end
@@ -201,7 +201,7 @@ module adc12(clk,rdwr,strobe,our_addr,addr,busy_in,busy_out,
     // Assign the bus control lines
     assign myaddr = (addr[11:8] == our_addr) && (addr[7:5] == 0);
     assign datout = (~myaddr) ? datin :
-                    (~strobe & (state == `SNDRPLY)) ? 8'h10 :  // all replies have 16 bytes
+                    (~strobe & (state == `ADCSNDRPLY)) ? 8'h10 :  // all replies have 16 bytes
                     (strobe) ? dout : 8'h00 ; 
     assign busy_out = busy_in;
     assign addr_match_out = myaddr | addr_match_in;
